@@ -5,24 +5,18 @@
 #      #    # #    #   #         #    # #   #  #      #    # #    #
 ###### #    #  ####    #          ####  #    # ###### #####   ####
 
-v3.6-BT5 11/08/2011
+v3.7
 This script leverages tools for stealing credentials during a pen test.
 
 New Attacks:
-- DNS Spoofing Attack
-- AP Client deauth
-
-New Prereqs:
-- SSLStrip Updates
-- Edit etter.dns
+- Freeradius-WPE over softap
 
 Enhancements:
-- Exit will now clean up attack before exiting
-- Less input required for creating dhcp.conf file
+- Attempt at installing on platforms other than BackTrack
 
-Fixes:
-- Route add for wireless attacks specified wrong interface and would fail
-- Dsniff, URLSnarf & SSLStrip were listening on wrong interface for wireless attacks
+Run the installer...let me know how it goes.
+
+jbrav[dot]hax[at]gmail[dot]com
 
 Instructional Videos:
 http://www.youtube.com/user/Brav0Hax
