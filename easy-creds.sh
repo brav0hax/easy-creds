@@ -5,7 +5,7 @@
 #                                                                                                                #
 # J0hnnyBrav0 (@Brav0hax) & al14s (@al14s)                                                                       #
 ##################################################################################################################
-# v3.7-pwnplug 10/08/2012
+# v3.7-pwnplug 10/07/2012
 #
 # Copyright (C) 2012  Eric Milam
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 
@@ -58,7 +58,7 @@ else
 fi
 
 # Uncomment the following line to launch attacks in a screen session instead of an xterm window.
-#unset isxrunning
+unset isxrunning
 
 if [ -z $isxrunning ]; then
 	echo -e "\n\e[1;31m[-] X Windows not detected, your attack will be launched in screen\e[0m\n"
@@ -522,7 +522,7 @@ f_ecap(){
 	if [ ! -z $isxrunning ]; then
 	   xterm -geometry "$width"x$height-$x+$y -T "Ettercap - $type" -l -lf $logfldr/ettercap$(date +%F-%H%M).txt -bg white -fg black -e $c &
 	else
-	   screen -S easy-creds -t ettercap -X screen $c
+	   screen -S easy-creds -t "ettercap" -X screen $c
 	fi
 	ecpid=$(pidof ettercap)
 }
@@ -716,7 +716,6 @@ f_dhcptunnel(){
 	f_mainmenu
 }
 
-
 ##################################################
 f_finalstage(){
 
@@ -737,12 +736,12 @@ f_finalstage(){
 		elif [ "$wireless" == "1" ] && [ -z $isxrunning ]; then
 		  echo -e "\n\e[1;33m[*] Launching SSLStrip...\e[0m\n"
 		  sslstripfilename=sslstrip$(date +%F-%H%M).log
-		  screen -S easy-creds  -T "SSLStrip" -X screen python $sslstrippath/sslstrip.py -pfk -w $logfldr/$sslstripfilename
+		  screen -S easy-creds  -t "SSLStrip" -X screen python $sslstrippath/sslstrip.py -pfk -w $logfldr/$sslstripfilename
 		  echo $! > /tmp/sslstrip.pid
 		else
 		  echo -e "\n\e[1;33m[*] Launching SSLStrip...\e[0m\n"
 		  sslstripfilename=sslstrip$(date +%F-%H%M).log
-		  screen -dmS easy-creds -T sslstrip bash -c "python $sslstrippath/sslstrip.py -pfk -w $logfldr/$sslstripfilename"
+		  screen -dmS easy-creds -t "sslstrip" bash -c "python $sslstrippath/sslstrip.py -pfk -w $logfldr/$sslstripfilename"
 		  echo $! > /tmp/sslstrip.pid
 		fi
 	fi
@@ -760,15 +759,13 @@ f_finalstage(){
 		xterm -geometry "$width"x$height-$x+$y -T "URL Snarf" -l -lf $logfldr/urlsnarf-$(date +%F-%H%M).txt -bg black -fg green -e urlsnarf  -i $TUNIFACE &
 		sleep 1
 	elif [ "$wireless" == "1" ] && [ -z $isxrunning ]; then
-		screen -S easy-creds -T "urlsnarf" -X screen urlsnarf -i $TUNIFACE | tee -a $logfldr/urlsnarf-$(date +%F-%H%M).txt
-		#screen -S easy-creds -X select 4
-		#screen -S easy-creds -X logfile $logfldr/urlsnarf-$(date +%F-%H%M).txt
-		#screen -S easy-creds -X log
+		screen -S easy-creds -t "urlsnarf" -X screen urlsnarf -i $TUNIFACE
+		screen -S easy-creds -p urlsnarf -X logfile $logfldr/urlsnarf-$(date +%F-%H%M).txt
+		screen -S easy-creds -p urlsnarf -X log
 	elif [ -z $wireless ] && [ -z $isxrunning ]; then
-		screen -S easy-creds -T "urlsnarf" -X screen urlsnarf -i $IFACE | tee -a $logfldr/urlsnarf-$(date +%F-%H%M).txt
-		#screen -S easy-creds -X select 2
-		#screen -S easy-creds -X logfile $logfldr/urlsnarf-$(date +%F-%H%M).txt
-		#screen -S easy-creds -X log
+		screen -S easy-creds -t "urlsnarf" -X screen urlsnarf -i $IFACE
+		screen -S easy-creds -p urlsnarf -X logfile $logfldr/urlsnarf-$(date +%F-%H%M).txt
+		screen -S easy-creds -p urlsnarf -X log
 	else
 		y=$(($y+$yoffset))
 		xterm -geometry "$width"x$height-$x+$y -T "URL Snarf" -l -lf $logfldr/urlsnarf-$(date +%F-%H%M).txt -bg black -fg green -e urlsnarf  -i $IFACE &
