@@ -177,9 +177,22 @@ f_Quit(){
 ##################################################
 f_addtunnel(){
 	if [ -z $isxrunning ];then
-	 nano /etc/default/dhcp3-server
+		if [ -e /etc/default/isc-dhcp-server ]; then
+			nano /etc/default/isc-dhcp-server
+		elif [ -e /etc/sysconfig/dhcpd ]; then
+			nano /etc/sysconfig/dhcpd
+		else
+			nano /etc/default/dhcp3-server
+		fi
 	else
-	 xterm -bg blue -fg white -geometry 90x25 -T "Add dhcpd Interface" -e nano /etc/default/dhcp3-server &
+		if [ -e /etc/default/isc-dhcp-server ]; then
+	 		xterm -bg blue -fg white -geometry 90x25 -T "Add dhcpd Interface" -e nano /etc/default/isc-dhcp-server &
+		elif [ -e /etc/sysconfig/dhcpd ]; then
+			xterm -bg blue -fg white -geometry 90x25 -T "Add dhcpd Interface" -e nano /etc/sysconfig/dhcpd &
+		else
+	 		xterm -bg blue -fg white -geometry 90x25 -T "Add dhcpd Interface" -e nano /etc/default/dhcp3-server &
+		fi
+
 	fi
 	f_prereqs
 }
@@ -655,7 +668,12 @@ f_dhcpconf(){
 
 ##################################################
 f_ipcalc(){
-	DHCPPATH=/etc/dhcp3/dhcpd-ec.conf
+	
+	if [ -e /etc/dhcp3/dhcpd.conf ]; then
+		DHCPPATH=/etc/dhcp3/dhcpd.conf
+	else
+		DHCPPATH=/etc/dhcp/dhcpd.conf
+	fi
 
 	#use ipcalc to complete the DHCP setup
 	ipcalc "$ATCIDR" > /tmp/atcidr
@@ -669,17 +687,17 @@ f_ipcalc(){
 	ATLEND=$(echo $ATLENDTMP.200)
 
 	echo -e "\n\n\e[1;33m[*] Creating a dhcpd.conf to assign addresses to clients that connect to us.\e[0m"
-	echo "ddns-update-style none;" > /etc/dhcp3/dhcpd-ec.conf
-	echo "authoritative;"  >> /etc/dhcp3/dhcpd-ec.conf
-	echo "log-facility local7;"  >> /etc/dhcp3/dhcpd-ec.conf
-	echo "subnet $ATNET netmask $ATSUB {"  >> /etc/dhcp3/dhcpd-ec.conf
-	echo "	range $ATLSTART $ATLEND;"  >> /etc/dhcp3/dhcpd-ec.conf
-	echo "	option domain-name-servers $ATDNS;"  >> /etc/dhcp3/dhcpd-ec.conf
-	echo "	option routers $ATIP;"  >> /etc/dhcp3/dhcpd-ec.conf
-	echo "	option broadcast-address $ATBROAD;"  >> /etc/dhcp3/dhcpd-ec.conf
-	echo "	default-lease-time 600;" >> /etc/dhcp3/dhcpd-ec.conf
-	echo "	max-lease-time 7200;"  >> /etc/dhcp3/dhcpd-ec.conf
-	echo "}" >> /etc/dhcp3/dhcpd-ec.conf
+	echo "ddns-update-style none;" > $DHCPPATH
+	echo "authoritative;"  >> $DHCPPATH
+	echo "log-facility local7;"  >> $DHCPPATH
+	echo "subnet $ATNET netmask $ATSUB {"  >> $DHCPPATH
+	echo "	range $ATLSTART $ATLEND;"  >> $DHCPPATH
+	echo "	option domain-name-servers $ATDNS;"  >> $DHCPPATH
+	echo "	option routers $ATIP;"  >> $DHCPPATH
+	echo "	option broadcast-address $ATBROAD;"  >> $DHCPPATH
+	echo "	default-lease-time 600;" >> $DHCPPATH
+	echo "	max-lease-time 7200;"  >> $DHCPPATH
+	echo "}" >> $DHCPPATH
 }
 
 
@@ -744,7 +762,14 @@ f_dhcptunnel(){
 	sleep 3
 
 	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface.\e[0m\n"
-	dhcpd3 -q -cf $DHCPPATH -pf /var/run/dhcp3-server/dhcpd.pid $TUNIFACE &
+	if [ -e /etc/dhcp3/dhcpd.conf ]; then
+		dhcpd3 -q -cf $DHCPPATH -pf /var/run/dhcp3-server/dhcpd.pid $TUNIFACE &
+	elif [ -e /etc/sysconfig/dhcpd ]; then
+		systemctl start dhcpd.service
+	else
+		service dhcpd start
+	fi
+
 	sleep 3
 	f_finalstage
 	f_mainmenu
