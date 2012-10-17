@@ -5,7 +5,7 @@
 #                                                                                                                #
 # J0hnnyBrav0 (@Brav0hax) & al14s (@al14s)                                                                       #
 ##################################################################################################################
-# v3.7-pwnie edition 10/17/2012
+# v3.7-pwnie edition "Hidalgo" 10/17/2012
 #
 # Copyright (C) 2012  Eric Milam
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 

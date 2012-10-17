@@ -5,27 +5,137 @@
 #      #    # #    #   #         #    # #   #  #      #    # #    #
 ###### #    #  ####    #          ####  #    # ###### #####   ####
 
-v3.7-pwn plug edition
+v3.7-pwnie edition "Hidalgo"
+
+Purpose:
 This script leverages tools for stealing credentials during a pen test.
 
-easy-creds Requirements:
-- screen -> apt-get
-- freeradius-wpe
-	- Installed from source with patch -> need a deb package created
-- hamster -> created /pentest/sidejack folder
- - installed from source
-- ferret -> created /pentest/sidejack folder
- - installed from source
-- sslstrip -> already installed
-- dsniff -> already installed
-- urlsnarf -> already installed
-- metasploit -> already installed
-- airbase-ng -> already installed
- - Need newer rev because of bug for tunnel interface (rev. 2204 used)
-- airodump-ng -> already installed
-- hostapd -> apt-get
-- mdk3 -> installed from source
-- ipcalc -> already installed
+1. Prereqs
+2. Installation
+3. Working with easy-creds in screen
+4. Instructional videos
 
-Instructional Videos:
-http://www.youtube.com/user/Brav0Hax
+1. Prereqs:
+
+* screen
+* freeradius-wpe
+* hamster
+* ferret
+* sslstrip
+* dsniff
+* urlsnarf
+* metasploit
+* airbase-ng
+* airodump-ng
+* hostapd
+* mdk3
+* ipcalc
+* asleap
+
+
+2. Installations:
+
+sslstrip - already installed
+dsniff - already installed
+urlsnarf - already installed
+metasploit - already installed
+ipcalc - alreay installed
+
+###
+screen - apt-get install screen
+hostapd - apt-get install hostapd
+
+###
+aircrack-ng suite
+
+This is already installed by default, however, there are know issues for airbase-ng with the base v1.1 distro install. It is recommended that you grab the latest nightly build from the SVN repo and recompile
+
+        svn co http://trac.aircrack-ng.org/svn/trunk/ /tmp/aircrack-ng
+        cd /tmp/aircrack-ng/
+        make && make install
+        bash /usr/local/sbin/airodump-ng-oui-update
+
+###
+freeradius-wpe
+
+The free radius in the repo does not include the wpe patch. It is best to install from source
+
+	wget ftp://ftp.freeradius.org/pub/radius/old/freeradius-server-2.1.11.tar.bz2 -O /tmp/freeradius-server-2.1.11.tar.bz2
+	wget http://www.opensecurityresearch.com/files/freeradius-wpe-2.1.11.patch -O /tmp/freeradius-wpe-2.1.11.patch
+	cd /tmp
+	tar -jxvf freeradius-server-2.1.11.tar.bz2
+	mv freeradius-wpe-2.1.11.patch /tmp/freeradius-server-2.1.11/freeradius-wpe-2.1.11.patch
+	cd freeradius-server-2.1.11
+	patch -p1 < freeradius-wpe-2.1.11.patch
+	./configure && make && make install
+	cd /usr/local/etc/raddb/certs/
+	./bootstrap
+
+###
+Hamster & Ferret
+
+	mkdir /pentest/sidejack
+	cd /tmp
+	wget http://www.erratasec.com/erratasec.zip -O /tmp/erratasec.zip
+	unzip erratasec.zip
+	cd hamster/build/gcc4/
+	make
+	cp /tmp/ec-install/hamster/bin/* /pentest/sidejack
+	rm -rf /tmp/ferret
+
+	svn checkout http://ferret.googlecode.com/svn/trunk/ /tmp/ferret
+	cd /tmp/ferret/
+	make
+	cp /tmp/ferret/bin/ferret /pentest/sidejack/ferret
+
+###
+asleap
+
+	mkdir /pentest/asleap
+	wget http://sourceforge.net/projects/asleap/files/asleap/asleap-1.4/asleap-1.4.tgz/download -O /tmp/asleap.tgz
+	cd /tmp
+	tar xvf asleap.tgz
+	cd asleap
+	make
+	mv /tmp/asleap/* /pentest/asleap/
+
+###
+MDK3
+
+	wget http://homepages.tu-darmstadt.de/~p_larbig/wlan/mdk3-v6.tar.bz2 -O /tmp/mdk3-v6.tar.bz2
+	cd /tmp
+	tar -xvjpf mdk3-v6.tar.bz2
+	cd mdk3-v6
+	make && make install
+
+
+3. Working with easy-creds within a screen
+
+I don't want to assume everyone is perfectly comfortable with screen, but please read some tutorials from the web. When using the pwnie you will most likely be in a screen session already, if not make sure that's the first thing you do once you get your shell.
+
+easy-creds will look for X windows running, but shouldn't find it on the pwnie and launch everything in a screen sessions. This can feel a bit like Inception once you're in a screen within a screen
+
+The main thing to remember is once the easy-creds screen session launches you should do the following from command prompt.
+
+screen -list (you should see the easy-creds session)
+screen -r easy-creds
+
+You are now interacting with the easy-creds screen session. Normally to view your screens you would press ctrl-a then " and this will show you what screens you have open in the session.
+
+Where it gets tricky is when you have a screen session, then launch another screen session (easy-creds attacks). When that happens you will need to do the following:
+
+ctrl-a then a then "
+
+That extra 'a' lets the screen program know you want to work with the inner screen session.
+
+Yes it is confusing a bit at first but you'll get the hang of it.
+
+
+4. Instructional Videos:
+Instructional videos can be found here -> http://www.youtube.com/user/Brav0Hax
+
+Even if the version is not the same, the base functionality is.
+
+Happy hunting!!
+
+jbrav.hax@gmail.com
