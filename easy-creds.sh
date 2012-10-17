@@ -5,7 +5,7 @@
 #                                                                                                                #
 # J0hnnyBrav0 (@Brav0hax) & al14s (@al14s)                                                                       #
 ##################################################################################################################
-# v3.7-pwnplug 10/16/2012
+# v3.7-pwnie edition 10/16/2012
 #
 # Copyright (C) 2012  Eric Milam
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 
@@ -18,7 +18,7 @@
 # Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 ##################################################################################################################
 #
-#Clear some variables
+#Clear some variables to ensure a fresh start -> Belt and suspenders :-)
 unset acreds
 unset msfmysql
 unset wireless
@@ -59,7 +59,7 @@ else
 fi
 
 # Uncomment the following line to launch attacks in a screen session instead of an xterm window.
-unset isxrunning
+#unset isxrunning
 
 if [ -z $isxrunning ]; then
 	echo -e "\n\e[1;31m[-] X Windows not detected, your attack will be launched in screen\e[0m\n"
@@ -109,7 +109,10 @@ f_checkexit(){
 f_Quit(){
 	echo -e "\n\n\e[1;33m[*] Please standby while we clean up your mess...\e[0m\n"
 	sleep 3
-	kill $(pidof ettercap) $(pidof urlsnarf) $(pidof dsniff) $(cat /tmp/ec/sslstrip.pid) $(pidof hamster) $(pidof ferret)
+	kill $(pidof ettercap) $(pidof urlsnarf) $(pidof dsniff) $(cat /tmp/ec/sslstrip.pid)
+
+	if [ ! -z $(pidof hamster) ]; then kill $(pidof hamster); fi
+	if [ ! -z $(pidof ferret) ]; then kill $(pidof ferret); fi
 
 	if [ ! -z $wireless ]; then
 	 kill $(pidof airbase-ng) $(pidof hamster) $(pidof ferret)  $(cat /tmp/ec/tail.pid)
@@ -246,69 +249,6 @@ f_aircrackupdate(){
 
 	cd $location
 	f_prereqs
-}
-
-
-##################################################
-f_sslstrip_vercheck(){
-	clear
-	f_Banner
-	echo -e "\n\e[1;33m[*] Checking the thoughtcrime website for the latest version of SSLStrip...\e[0m\n"
-
-	#Get the installed version
-	echo cat $sslstrippath/setup.py|grep version|cut -d "'" -f2
-	installedver=$(cat $sslstrippath/setup.py|grep version|cut -d "'" -f2)
-
-	# Change to tmp folder to keep things clean then get the index.html from thoughtcrime.com for SSLStrip
-	cd /tmp/ec/
-	wget -q http://www.thoughtcrime.org/software/sslstrip/index.html
-	latestver=$(cat index.html | grep "cd sslstrip"|cut -d "-" -f2)
-	#clean up the mess
-	rm /tmp/ec/index.html
-	cd $location
-
-	echo -e "\n\e[1;33m[*] Installed version of SSLStrip: $installedver\e[0m\n"
-	echo -e "\nLatest version of SSLStrip: $latestver\n"
-
-	if [ $(echo "$installedver < $latestver"|bc) == "1" ]; then
-	  echo -e "\n\e[1;33m[*] You have version\e[0m \e[1;31m$installedver\e[0m \e[1;33m installed, version\e[0m \e[1;32m$latestver\e[0m \e[1;33m is available.\e[0m\n"
-
-	  read -p "Would you like to install the latest version? [y/N]: " yn
-	  if [ $(echo ${yn} | tr 'A-Z' 'a-z') == 'y' ]; then f_sslstripupdate; fi
-	else
-	  echo -e "\n\e[1;32m[+] Looks like you're running the latest version available.\e[0m \n"
-	  sleep 3
-	fi
-	f_prereqs
-}
-
-
-##################################################
-f_sslstripupdate(){
-	clear
-	f_Banner
-
-	echo -e "\n\e[1;31m[-] This will install SSLStrip from the thoughtcrime website, not the repositories.\e[0m\n\e[1;33m[*] Hit return to continue or ctrl-c to cancel and return to main menu.\e[0"
-	read
-
-	cp -R "$sslstrippath" /tmp/ec/sslstrip-"$installedver"
-
-	echo -e "\n\e[1;33m[*] Downloading the tar file...\e[0m"
-	cd /tmp
-	wget -q http://www.thoughtcrime.org/software/sslstrip/sslstrip-"$latestver".tar.gz
-
-	echo -e "\n\e[1;33m[*] Installing the latest version of SSLStrip...\e[0m"
-	tar -zxvf sslstrip-"$latestver".tar.gz
-	mv -f /tmp/ec/sslstrip-"$latestver"/ "$sslstrippath"/
-	"$sslstrippath"/setup.py install &> /dev/null
-	cd "$location"
-
-	echo -e "\n\e[1;32m[+] Version $latestver has been installed.\e[0m\n"
-	sleep 2
-
-	#clean up the mess
-	rm -rf /tmp/ec/sslstrip-$latestver
-	rm /tmp/ec/sslstrip-$latestver.tar.gz
 }
 
 ##################################################
@@ -1224,11 +1164,6 @@ f_buildclientsconf(){
 	echo "       secret = $radiussecret" >> $pathtoradiusconf/clients.conf
 	echo "       shortname = testAP" >> $pathtoradiusconf/clients.conf
 	echo "}" >> $pathtoradiusconf/clients.conf
-	# echo "client $ATCIDR {"  >> $pathtoradiusconf/clients.conf
-	# echo "       secret = $radiussecret" >> $pathtoradiusconf/clients.conf
-	# echo "       shortname = testAP" >> $pathtoradiusconf/clients.conf
-	# echo "}" >> $pathtoradiusconf/clients.conf
-
 }
 
 
@@ -1272,6 +1207,7 @@ f_hostapd(){
 }
 
 
+##################################################
 f_freeradiusfinal(){
 	echo -e "\n\e[1;33m[*] Launching the FreeRadius server...\e[0m\n"
 	echo $isxrunning
@@ -1525,7 +1461,7 @@ f_Banner(){
 	echo -e "||\e[1;36me\e[0m |||\e[1;36ma\e[0m |||\e[1;36ms\e[0m |||\e[1;36my\e[0m |||\e[1;36m-\e[0m |||\e[1;36mc\e[0m |||\e[1;36mr\e[0m |||\e[1;36me\e[0m |||\e[1;36md\e[0m |||\e[1;36ms\e[0m ||"
 	echo -e "||__|||__|||__|||__|||__|||__|||__|||__|||__|||__||"
 	echo -e "|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|"
-	echo -e "\e[1;33m 	Version 3.7.6 - Garden of Your Mind\e[0m"
+	echo -e "\e[1;33m Version 3.7 - Garden of Your Mind - Pwnie Edition\e[0m"
 	echo
 	echo -e "\e[1;33mAt any time,\e[0m \e[1;36mctrl+c\e[0m \e[1;33m to cancel and return to the main menu\e[0m"
 	echo
