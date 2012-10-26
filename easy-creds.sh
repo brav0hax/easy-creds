@@ -109,8 +109,9 @@ f_checkexit(){
 f_Quit(){
 	echo -e "\n\n\e[1;33m[*] Please standby while we clean up your mess...\e[0m\n"
 	sleep 3
-	kill $(pidof ettercap) $(pidof urlsnarf) $(pidof dsniff) $(cat /tmp/ec/sslstrip.pid)
-
+	kill $(pidof ettercap) $(pidof urlsnarf) $(pidof dsniff)
+	
+	if [ -e /tmp/ec/sslstrip.pid ]; then kill $(cat /tmp/ec/sslstrip.pid); fi
 	if [ ! -z $(pidof hamster) ]; then kill $(pidof hamster); fi
 	if [ ! -z $(pidof ferret) ]; then kill $(pidof ferret); fi
 
