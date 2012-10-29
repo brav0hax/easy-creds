@@ -120,7 +120,7 @@ f_findpaths(){
 	aircrackpath="/usr/local/bin"
 	airodumppath="/usr/local/sbin"
 	asleappath="/usr/bin/"
-	ecpath="/root/Desktop/easy-creds-3.7"
+	ecpath="/opt/easy-creds"
 	etterpath="/usr/local/bin"
 	ferretpath="/opt/sidejack"
 	freeradiuslog="/usr/local/var/log/radius/freeradius-server-wpe.log"
