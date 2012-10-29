@@ -266,7 +266,7 @@ if [ ! -e /usr/bin/asleap ] && [ ! -e /usr/sbin/asleap ] && [ ! -e /usr/local/sb
 	echo -e "\e[1;33m[-] asleap is not installed, will attempt to install...\e[0m"
 	sleep 2
 	echo -e "\n\e[1;33m Downloading and installing asleap from source...\e[0m"
-	wget http://sourceforge.net/projects/asleap/files/asleap/asleap-1.4/asleap-1.4.tgz/download -O /tmp/ec-install/asleap.tgz
+	wget http://www.willhackforsushi.com/code/asleap/2.2/asleap-2.2.tgz -O /tmp/ec-install/asleap.tgz
 	cd /tmp/ec-install
 	tar xvf asleap.tgz
 	cd asleap
