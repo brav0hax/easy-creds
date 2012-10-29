@@ -109,7 +109,7 @@ MDK3
 	cd mdk3-v6
 	make && make install
 
-4. Configuration of Program paths
+3. Configuration of Program paths
 One of the things I tried to do with this version is to remove the hardcoded paths relating to BackTrack. This is an attempt to use easy-creds on other distros (Ubuntu, Debian, Red Hat)
 
 In order to pull this off I was originally using the 'locate' command to identify the proper exec paths. This proved to be a bit clugy, so I decided to use variable declarations for the paths. This is much easier, but requires some additional set up by the user.
@@ -124,7 +124,7 @@ Based on the info you would set the following:
 mdk3path="/usr/local/sbin"
 
 
-3. Working with easy-creds within a screen
+4. Working with easy-creds within a screen
 
 I don't want to assume everyone is perfectly comfortable with screen, but please read some tutorials from the web. When using the pwnie you will most likely be in a screen session already, if not make sure that's the first thing you do once you get your shell.
 
@@ -146,7 +146,7 @@ That extra 'a' lets the screen program know you want to work with the inner scre
 Yes it is confusing a bit at first but you'll get the hang of it.
 
 
-4. Instructional Videos:
+5. Instructional Videos:
 Instructional videos can be found here -> http://www.youtube.com/user/Brav0Hax
 
 Even if the version is not the same, the base functionality is.
