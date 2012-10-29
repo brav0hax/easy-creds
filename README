@@ -81,24 +81,24 @@ Hamster & Ferret
 	unzip erratasec.zip
 	cd hamster/build/gcc4/
 	make
-	cp /tmp/ec-install/hamster/bin/* /pentest/sidejack
+	cp /tmp/ec-install/hamster/bin/* /opt/sidejack
 	rm -rf /tmp/ferret
 
 	svn checkout http://ferret.googlecode.com/svn/trunk/ /tmp/ferret
 	cd /tmp/ferret/
 	make
-	cp /tmp/ferret/bin/ferret /pentest/sidejack/ferret
+	cp /tmp/ferret/bin/ferret /opt/sidejack/ferret
 
 ###
 asleap
 
 	mkdir /opt/asleap
-	wget http://sourceforge.net/projects/asleap/files/asleap/asleap-1.4/asleap-1.4.tgz/download -O /tmp/asleap.tgz
+	wget http://www.willhackforsushi.com/code/asleap/2.2/asleap-2.2.tgz -O /tmp/asleap.tgz
 	cd /tmp
 	tar xvf asleap.tgz
 	cd asleap
 	make
-	mv /tmp/asleap/* /pentest/asleap/
+	mv /tmp/asleap/* /opt/asleap/
 
 ###
 MDK3
