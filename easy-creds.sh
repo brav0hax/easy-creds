@@ -5,7 +5,7 @@
 #                                                                                                                #
 # J0hnnyBrav0 (@Brav0hax) & help from al14s (@al14s)                                                             #
 ##################################################################################################################
-# v3.7 Garden of Your Mind- 10/28/2012
+# v3.7 Garden of Your Mind- 10/30/2012
 #
 # Copyright (C) 2012  Eric Milam
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 
@@ -390,7 +390,7 @@ f_sslstripupdate(){
 }
 ##################################################
 f_howtos(){
-	xdg-open http://www.youtube.com/brav0hax/videos &
+	xdg-open http://www.youtube.com/user/Brav0Hax/videos &
 	f_prereqs 
 }
 ##################################################
