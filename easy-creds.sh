@@ -329,12 +329,12 @@ f_sslstripupdate(){
 }
 ##################################################
 f_howtos(){
-	xdg-open http://www.youtube.com/user/Brav0Hax/videos &
+	xdg-open http://www.youtube.com/user/Brav0Hax/videos
 	f_prereqs
 }
 ##################################################
 f_pbs(){
-	xdg-open http://www.youtube.com/watch?v=OFzXaFbxDcM &
+	xdg-open http://www.youtube.com/watch?v=OFzXaFbxDcM
 	f_mainmenu
 }
 ##################################################
