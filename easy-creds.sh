@@ -3,15 +3,15 @@
 ##################################################################################################################
 # easy-creds is a simple bash script which makes sniffing networks for credentials a little easier.              #
 #                                                                                                                #
-# J0hnnyBrav0 (@Brav0hax) & help from al14s (@al14s)                                                             #
+# J0hnnyBrav0 (@Brav0hax) with help from al14s (@al14s) and Zero_Chaos                                           #
 ##################################################################################################################
-# v3.7.3 Garden of Your Mind - 12/11/2012
+# v3.8-dev Garden of New Jersey - rolling
 #
-# Copyright (C) 2012  Eric Milam
-# This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public 
+# Copyright (C) 2013  Eric Milam
+# This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public
 # License as published by the Free Software Foundation; either version 2 of the License, or any later version.
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied 
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
 # warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with this program; if not, write to the
@@ -74,7 +74,7 @@ f_findpaths(){
 # Grab the paths from the config file
 updatedb &> /dev/null
 easy_creds_config=$(locate easy-creds.paths)
-source $easy_creds_config	
+source $easy_creds_config
 }
 
 ##################################################
@@ -100,7 +100,7 @@ f_checkexit(){
 f_Quit(){
 	echo -e "\n\n\e[1;33m[*] Please standby while we clean up your mess...\e[0m\n"
 	sleep 3
-	
+
 	if [ -e /tmp/ec/sslstrip.pid ]; then kill $(cat /tmp/ec/sslstrip.pid); fi
 	if [ ! -z $(pidof hamster) ]; then kill $(pidof hamster); fi
 	if [ ! -z $(pidof ferret) ]; then kill $(pidof ferret); fi
@@ -148,7 +148,7 @@ f_Quit(){
 	 rm -rf /tmp/ec
 	 exit 2> /dev/null
 	fi
-	
+
 	rm -rf /tmp/ec
 	bash $0 $logfldr
 	kill $$ 2> /dev/null
@@ -330,7 +330,7 @@ f_sslstripupdate(){
 ##################################################
 f_howtos(){
 	xdg-open http://www.youtube.com/user/Brav0Hax/videos &
-	f_prereqs 
+	f_prereqs
 }
 ##################################################
 f_pbs(){
@@ -407,10 +407,10 @@ f_HostScan(){
 	echo -e "\n\e[1;31m[-] Remember to remove any IPs that should not be poisoned!\e[0m\n" 
 
 	read -p "Would you like to edit the victim host list? [y/N] : " yn
-	if [ $(echo $yn | tr 'A-Z' 'a-z') == "y" ]; then 
+	if [ $(echo $yn | tr 'A-Z' 'a-z') == "y" ]; then
 		if [ -z $isxrunning ];then
 		 nano /tmp/victims
-		else 
+		else
 		 xterm -bg blue -fg white -geometry 125x100-0+0 -T "Edit Victims List" -e nano /tmp/victims &
 		fi
 	fi
@@ -564,7 +564,7 @@ f_ecap(){
 ##################################################
 f_ecap_assimilation(){
 	#Used if version of ettercap is 0.7.5 and above. Target specification format changed for IPv6
-	
+
 	echo -e "\n\e[1;33m[*] Launching ettercap, poisoning specified hosts.\e[0m\n"
 	y=$(($y+$yoffset))
 
@@ -624,7 +624,7 @@ f_fakeapAttack(){
 
 	wirelesscheck=$(airmon-ng | grep 'wlan')
 
-	if [ ! -z "$wirelesscheck" ]; then 
+	if [ ! -z "$wirelesscheck" ]; then
 	 airmon-ng
 	else
 	 echo -e "\n\e[1;31m[-] I can't find a wireless interface to display...continuing anyway\e[0m\n"
@@ -668,7 +668,7 @@ f_fakeapAttack(){
 
 ##################################################
 f_dhcpconf(){
-	
+
 	dhcpdconf=
 	if [ -d /etc/dhcp3 ]; then #Ubuntu/Debian dhcp3-server
 		dhcpdconf="/etc/dhcp3/dhcpd.conf"
@@ -677,12 +677,12 @@ f_dhcpconf(){
 	else
 		dhcpdconf="/etc/dhcp/dhcpd.conf" #Ubuntu/Debian/RH/Fedora isc-dhcp-server
 	fi
-	
+
 	valid=
 	while [[ $valid != 1 ]]; do
 	 read -e -p "Path to the dhcpd.conf file [$dhcpdconf]: " DHCPPATH
 	 if [ -z "$DHCPPATH" ]; then DHCPPATH=$dhcpdconf; fi
-	 
+
 	if [ ! -f "$DHCPPATH" ]; then
 		echo -e "File not found - $DHCPPATH\n"
 	 else
@@ -705,7 +705,7 @@ f_dhcpconf(){
 
 ##################################################
 f_ipcalc(){
-	
+
 	dhcpdconf=
 	if [ -d /etc/dhcp3 ]; then
 		dhcpdconf="/etc/dhcp3/dhcpd.conf"
@@ -714,7 +714,7 @@ f_ipcalc(){
 	else
 		dhcpdconf="/etc/dhcp/dhcp.conf"
 	fi
-	
+
 	DHCPPATH=$dhcpdconf
 
 	#use ipcalc to complete the DHCP setup
@@ -811,7 +811,7 @@ f_dhcptunnel(){
 	else
 		service dhcpd start
 	fi
-	
+
 	sleep 3
 	f_finalstage
 	f_mainmenu
@@ -842,13 +842,13 @@ f_finalstage(){
 	fi
 	echo $! > /tmp/ec/sslstrip.pid
 	sleep 2
-	
+
 	if [ -z "$ettercapversion" ]; then
 		f_ecap
 	else
 		f_ecap_assimilation
 	fi
-	
+
 	sleep 3
 
 	echo -e "\n\e[1;33m[*] Configuring IP forwarding...\e[0m\n"
@@ -1034,7 +1034,7 @@ f_getbssids(){
 
 	echo -e "\n\e[1;33m[*] The following APs were identified:\e[0m\n"
 
-	#IFS variable allows for spaces in the name of the ESSIDs and will still display it on one line 
+	#IFS variable allows for spaces in the name of the ESSIDs and will still display it on one line
 	SAVEIFS=$IFS
 	IFS=$(echo -en "\n\b")
 	for apname in $(cat /tmp/ec/airodump-ec-01.csv | egrep -a '(OPN|MGT|WEP|WPA)'| cut -d "," -f14| sort -u);do
@@ -1562,7 +1562,7 @@ f_Banner(){
 	echo -e "||\e[1;36me\e[0m |||\e[1;36ma\e[0m |||\e[1;36ms\e[0m |||\e[1;36my\e[0m |||\e[1;36m-\e[0m |||\e[1;36mc\e[0m |||\e[1;36mr\e[0m |||\e[1;36me\e[0m |||\e[1;36md\e[0m |||\e[1;36ms\e[0m ||"
 	echo -e "||__|||__|||__|||__|||__|||__|||__|||__|||__|||__||"
 	echo -e "|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|"
-	echo -e "\e[1;33m 	Version 3.7.3 - Garden of Your Mind\e[0m"
+	echo -e "\e[1;33m 	Version 3.8-dev - Garden of New Jersey\e[0m"
 	echo
 	echo -e "\e[1;33mAt any time,\e[0m \e[1;36mctrl+c\e[0m \e[1;33m to cancel and return to the main menu\e[0m"
 	echo
