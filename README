@@ -5,7 +5,7 @@
 #      #    # #    #   #         #    # #   #  #      #    # #    #
 ###### #    #  ####    #          ####  #    # ###### #####   ####
 
-v3.7- Garden of Your Mind
+v3.8-dev Garden of New Jersey
 
 Purpose:
 This script leverages tools for stealing credentials during a pen test.
@@ -18,14 +18,13 @@ New Attack -> Freeradius attack with a softAP
 
 1. Prereqs
 2. Installation
-3. Configuration of Paths
-4. Working with easy-creds in screen
-5. Instructional videos
+3. Working with easy-creds in screen
+4. Instructional videos
 
 1. Prereqs:
 
 * screen
-* freeradius-wpe
+* freeradius (with wpe patches)
 * hamster
 * ferret
 * sslstrip
@@ -40,31 +39,41 @@ New Attack -> Freeradius attack with a softAP
 * asleap
 
 
-2. Installations:
+2. Installation:
 
-Run the installer, it *should* install everything you need. If not, you'll need to do it manually
+Most can be installed from repos, we've included some instruction on installing from source when helpful.
 
-Most can be installed from repos, I've included some instruction on installing from source.
+easy-creds is available in some Linux distros already, so before spending a lot of time, try just installing it with your package manager.
+
+If easy-creds is not available already in the repo for your distro please open a bug for them (no us) to add it, then feel free to follow the directions below:
+
+To install SOME of the dependencies for debian/ubuntu based distros use the following command:
+
+apt-get install screen hostapd dsniff dhcp3-server ipcalc aircrack-ng
 
 ###
 aircrack-ng suite
 
-This is already installed by default, however, there are know issues for airbase-ng with the base v1.1 distro install. It is recommended that you grab the latest nightly build from the SVN repo and recompile
+There are known issues for airbase-ng with the base v1.1 version included in many distros. If that is what your distro provides it is recommended that you grab the latest nightly build from 
+the SVN repo and recompile.
 
-        svn co http://trac.aircrack-ng.org/svn/trunk/ /tmp/aircrack-ng
-        cd /tmp/aircrack-ng/
-        make && make install
-        bash /usr/local/sbin/airodump-ng-oui-update
+Full instructions for installing aircrack-ng available here:
+http://www.aircrack-ng.org/doku.php?id=install_aircrack
+
+Follow either svn or nightly tarball guide:
+http://www.aircrack-ng.org/doku.php?id=install_aircrack#latest_svn_development_sources
+http://www.aircrack-ng.org/doku.php?id=install_aircrack#nightly_build
+
 
 ###
 freeradius-wpe
 
-The free radius in the repo does not include the wpe patch. It is best to install from source
+The freeradius in the repo most likely does not include the wpe patch. It is best to install from source unless you are using a distro that already applied this very non-standard patch:
 
 	wget ftp://ftp.freeradius.org/pub/radius/old/freeradius-server-2.1.11.tar.bz2 -O /tmp/freeradius-server-2.1.11.tar.bz2
 	wget http://www.opensecurityresearch.com/files/freeradius-wpe-2.1.11.patch -O /tmp/freeradius-wpe-2.1.11.patch
 	cd /tmp
-	tar -jxvf freeradius-server-2.1.11.tar.bz2
+	tar xf freeradius-server-2.1.11.tar.bz2
 	mv freeradius-wpe-2.1.11.patch /tmp/freeradius-server-2.1.11/freeradius-wpe-2.1.11.patch
 	cd freeradius-server-2.1.11
 	patch -p1 < freeradius-wpe-2.1.11.patch
@@ -92,39 +101,26 @@ Hamster & Ferret
 ###
 asleap
 
-	mkdir /opt/asleap
+Asleap may be available in your package manager, if not, you can install like this:
+
 	wget http://www.willhackforsushi.com/code/asleap/2.2/asleap-2.2.tgz -O /tmp/asleap.tgz
 	cd /tmp
-	tar xvf asleap.tgz
+	tar xf asleap.tgz
 	cd asleap
 	make
-	mv /tmp/asleap/* /opt/asleap/
+	cp asleap /usr/local/sbin
+	cp genkeys /usr/local/bin
 
 ###
 MDK3
 
 	wget http://homepages.tu-darmstadt.de/~p_larbig/wlan/mdk3-v6.tar.bz2 -O /tmp/mdk3-v6.tar.bz2
 	cd /tmp
-	tar -xvjpf mdk3-v6.tar.bz2
+	tar xf mdk3-v6.tar.bz2
 	cd mdk3-v6
 	make && make install
 
-3. Configuration of Program paths
-One of the things I tried to do with this version is to remove the hardcoded paths relating to BackTrack. This is an attempt to use easy-creds on other distros (Ubuntu, Debian, Red Hat)
-
-In order to pull this off I was originally using the 'locate' command to identify the proper exec paths. This proved to be a bit clugy, so I decided to use variable declarations for the paths. This is much easier, but requires some additional set up by the user.
-
-The current paths are set with the defaults used by the installer but easily changeable. Starting on line 118 you can set the proper paths, using 'locate' or 'which'
-
-example:
-root@bt:~# which mdk3
-/usr/local/sbin/mdk3
-
-Based on the info you would set the following:
-mdk3path="/usr/local/sbin"
-
-
-4. Working with easy-creds within a screen
+3. Working with easy-creds within a screen
 
 I don't want to assume everyone is perfectly comfortable with screen, but please read some tutorials from the web. When using the pwnie you will most likely be in a screen session already, if not make sure that's the first thing you do once you get your shell.
 
@@ -146,7 +142,7 @@ That extra 'a' lets the screen program know you want to work with the inner scre
 Yes it is confusing a bit at first but you'll get the hang of it.
 
 
-5. Instructional Videos:
+4. Instructional Videos:
 Instructional videos can be found here -> http://www.youtube.com/user/Brav0Hax
 
 Even if the version is not the same, the base functionality is.
