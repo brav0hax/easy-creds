@@ -270,63 +270,6 @@ f_aircrackupdate(){
 	cd ${location}
 	f_prereqs
 }
-
-
-##################################################
-f_sslstrip_vercheck(){
-	clear
-	f_Banner
-	echo -e "\n\e[1;33m[*] Checking the thoughtcrime website for the latest version of SSLStrip...\e[0m\n"
-
-	#Get the installed version
-	echo cat ${sslstrippath}/setup.py|grep version|cut -d "'" -f2
-	installedver=$(cat ${sslstrippath}/setup.py|grep version|cut -d "'" -f2)
-
-	# Change to tmp folder to keep things clean then get the index.html from thoughtcrime.com for SSLStrip
-	cd /tmp/ec
-	wget -q http://www.thoughtcrime.org/software/sslstrip/index.html
-	latestver=$(cat index.html | grep "cd sslstrip"| cut -d "-" -f2|cut -d "<" -f1)
-	cd ${location}
-
-	echo -e "\n\e[1;33m[*] Installed version of SSLStrip: $installedver\e[0m\n"
-	echo -e "\nLatest version of SSLStrip: $latestver\n"
-
-	if [ $(echo "$installedver < $latestver"|bc) == "1" ]; then
-	  echo -e "\n\e[1;33m[*] You have version\e[0m \e[1;31m$installedver\e[0m \e[1;33m installed, version\e[0m \e[1;32m$latestver\e[0m \e[1;33m is available.\e[0m\n"
-
-	  read -p "Would you like to install the latest version? [y/N]: " yn
-	  if [ $(echo ${yn} | tr 'A-Z' 'a-z') == 'y' ]; then f_sslstripupdate; fi
-	else
-	  echo -e "\n\e[1;32m[+] Looks like you're running the latest version available.\e[0m \n"
-	  sleep 3
-	fi
-	f_prereqs
-}
-
-
-##################################################
-f_sslstripupdate(){
-	clear
-	f_Banner
-
-	echo -e "\n\e[1;31m[-] This will install SSLStrip from the thoughtcrime website, not the repositories.\e[0m\n\e[1;33m[*] Hit return to continue or ctrl-c to cancel and return to main menu.\e[0"
-	read
-
-	cp -R "${sslstrippath}" /tmp/ec/sslstrip-${installedver}
-
-	echo -e "\n\e[1;33m[*] Downloading the tar file...\e[0m"
-	cd /tmp/ec/
-	wget -q http://www.thoughtcrime.org/software/sslstrip/sslstrip-$latestver.tar.gz
-
-	echo -e "\n\e[1;33m[*] Installing the latest version of SSLStrip...\e[0m"
-	tar -xvf sslstrip-${latestver}.tar.gz
-	mv -f /tmp/ec/sslstrip-${latestver $sslstrippath}/sslstrip
-	python ${sslstrippath}/setup.py install &> /dev/null
-	cd ${location}
-
-	echo -e "\n\e[1;32m[+] Version $latestver has been installed.\e[0m\n"
-	sleep 2
-}
 ##################################################
 f_howtos(){
 	xdg-open http://www.youtube.com/user/Brav0Hax/videos
@@ -517,7 +460,7 @@ f_sidejack(){
 	cd ${logfldr}
 	screen -dmS SideJack -t ferret bash -c "ferret -i ${IFACE}"
 	sleep 2
-	screen -S SideJack -t hamster -X screen ${hamsterpath}/hamster
+	screen -S SideJack -t hamster -X screen hamster
 	cd ${location}
 	sleep 2
 	echo -e "\n\e[1;33m[*] Run firefox and type http://hamster\e[0m\n"
@@ -1264,10 +1207,19 @@ f_freeradiusattack(){
 	f_Banner
 	fra=1
 
-	atheroscard=$(lsmod | grep -c 'ath')
+	#installed by user
+	if [ -e /usr/local/var/log/radius/freeradius-server-wpe.log ] || [ -x /usr/local/sbin/radiusd ]; then
+		freeradiuslog=/usr/local/var/log/radius/freeradius-server-wpe.log
+		pathtoradiusconf=/usr/local/etc/raddb
+	#installed by package manager
+	else
+		freeradiuslog=/var/log/radius/freeradius-server-wpe.log
+		pathtoradiusconf=/etc/raddb
+	fi
 
+	atheroscard=$(lsmod | grep -c 'ath')
 	if [ -z ${atheroscard} ]; then
-	 echo -e "\n\e[1;31m[-] I could not find and Atheros wireless card.\nAttack only works with an atheros chipset...\e[0m\n" 
+	 echo -e "\n\e[1;31m[-] I could not find and Atheros wireless card.\nAttack only works with an atheros chipset...\e[0m\n"
 	 sleep 5
 	fi
 
@@ -1584,9 +1536,8 @@ f_prereqs(){
 	echo "5.  Add tunnel interface to dhcp3-server file"
 	echo "6.  Update Metasploit Framework"
 	echo "7.  Update Aircrack-ng"
-	echo "8.  Update SSLStrip"
-	echo "9.  How-to Videos (Launches Web Browser)"
-	echo "10. Previous Menu"
+	echo "8.  How-to Videos (Launches Web Browser)"
+	echo "9. Previous Menu"
 	echo
 	read -p "Choice: " prereqschoice
 
@@ -1598,9 +1549,8 @@ f_prereqs(){
 	5) f_addtunnel ;;
 	6) f_msfupdate ;;
 	7) f_aircrackupdate ;;
-	8) f_sslstrip_vercheck ;;
-	9) f_howtos ;;
-	10) f_mainmenu ;;
+	8) f_howtos ;;
+	9) f_mainmenu ;;
 	*) f_prereqs ;;
 	esac
 }

@@ -1,5 +1,0 @@
-ecpath="/pentest/sniffers/easy-creds"
-freeradiuslog="/usr/local/var/log/radius/freeradius-server-wpe.log"
-hamsterpath="/opt/sidejack"
-pathtoradiusconf="/usr/local/etc/raddb"
-sslstrippath="/pentest/web/sslstrip"
