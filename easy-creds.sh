@@ -1342,24 +1342,22 @@ f_freeradiusfinal(){
 	fi
 
 	if [ ! -e ${freeradiuslog} ]; then
-	 touch ${findradiuslog}/freeradius-server-wpe.log
-	 freeradiuslog=$findradiuslog/freeradius-server-wpe.log
+		touch ${freeradiuslog}
 	fi
 
 	echo -e "\n\e[1;33m[*] Launching credential log file...\e[0m\n"
 	sleep 3
 
 	if [ ! -z ${isxrunning} ]; then
-	 y=$((${y}+${yoffset}))
-	 xterm -geometry "${width}"x${height}-${x}+${y} -T "credentials" -bg black -fg green -hold -l -lf ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt -e tail -f ${freeradiuslog} &
-	 echo $! > /tmp/ec/tail.pid
-	 sleep 3
+		y=$((${y}+${yoffset}))
+		xterm -geometry "${width}"x${height}-${x}+${y} -T "credentials" -bg black -fg green -hold -l -lf ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt -e tail -f ${freeradiuslog} &
+		echo $! > /tmp/ec/tail.pid
+		sleep 3
 	else
-	 screen -S FreeRadius -t credentials -X screen tail -f ${freeradiuslog}/freeradius-server-wpe.log
-	 screen -S easy-creds -X select 2
-	 screen -S easy-creds -X logfile ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt
-	 screen -S easy-creds -X log
-	 echo $! > /tmp/ec/tail.pid
+		screen -S FreeRadius -X screen -t credentials tail -f ${freeradiuslog}
+		screen -S FreeRadius -p credentials -X logfile ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt
+		screen -S FreeRadius -p credentials -X log
+		echo $! > /tmp/ec/tail.pid
 	fi
 
 	tshark -i ${radwiface} -w ${logfldr}/freeradius-creds-$(date +%F-%H%M).dump &> /dev/null &
@@ -1486,8 +1484,8 @@ done
 acreds="${PWD}/asleap-creds-$(date +%F-%H%M).txt"
 touch ${acreds}
 
-cat ${credlist}|egrep 'username|challenge|response'| cut -d " " -f2 > /tmp/ec/freeradius-creds.tmp
-NUMLINES=$(cat /tmp/ec/freeradius-creds.tmp | wc -l)
+cat ${credlist}|egrep '(username|challenge|response)'|cut -d ":" -f2-|sed -e 's/^[ \t]*//' > /tmp/ec/freeradius-creds.tmp
+NUMLINES=$(cat /tmp/ec/freeradius-creds.tmp|wc -l)
 i=1
 
 while [ $i -le "${NUMLINES}" ]; do
