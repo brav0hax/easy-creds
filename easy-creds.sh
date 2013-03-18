@@ -676,9 +676,9 @@ f_dhcptunnel(){
 	 y=$((${y}+${yoffset}))
 	 xterm -geometry "${width}"x${height}-${x}+${y} -T "DMESG" -bg black -fg red -e tail -f /var/log/messages &
 	fi
-	ps a|grep tail|grep -v grep|cut -d" " -f1 > /tmp/ec/tail.pid
 	sleep 2
-
+	ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
+	
 	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface.\e[0m"
 	if [ -e /etc/dhcp3/dhcpd.conf ]; then
 		dhcpd3 -q -cf ${DHCPPATH} -pf /var/run/dhcp3-server/dhcpd.pid ${TUNIFACE} &
@@ -711,8 +711,8 @@ f_finalstage(){
 			xterm -geometry "${width}"x${height}-${x}+${y} -bg blue -fg white -T "SSLStrip" -e sslstrip -pfk -w ${logfldr}/${sslstripfilename} &
 		fi
 	fi
-	ps a|grep sslstrip|grep -v grep|cut -d" " -f1 > /tmp/ec/sslstrip.pid
 	sleep 2
+	ps ax|grep sslstrip|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/sslstrip.pid
 	#Launch ettercap
 	f_ecap
 	sleep 3
@@ -1068,9 +1068,9 @@ f_karmafinal(){
 	 y=$((${y}+${yoffset}))
 	 xterm -geometry "${width}"x${height}-${x}+${y} -T "DMESG" -bg black -fg red -e tail -f /var/log/messages &
 	fi
-	ps a|grep tail|grep -v grep|cut -d" " -f1 > /tmp/ec/tail.pid
 	sleep 3
-
+	ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
+	
 	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface.\e[0m\n"
 	if [ -e /etc/dhcp/dhcpd.conf ]; then
 		service isc-dhcp-server start
@@ -1240,13 +1240,14 @@ f_freeradiusfinal(){
 	if [ ! -z ${isxrunning} ]; then
 		y=$((${y}+${yoffset}))
 		xterm -geometry "${width}"x${height}-${x}+${y} -T "credentials" -bg black -fg green -hold -l -lf ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt -e tail -f ${freeradiuslog} &
-		ps a|grep tail|grep -v grep|cut -d" " -f1 > /tmp/ec/tail.pid
 		sleep 3
+		ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
 	else
 		screen -S FreeRadius -X screen -t credentials tail -f ${freeradiuslog}
 		screen -S FreeRadius -p credentials -X logfile ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt
 		screen -S FreeRadius -p credentials -X log
-		ps a|grep tail|grep -v grep|cut -d" " -f1 > /tmp/ec/tail.pid
+		sleep 3
+		ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
 	fi
 
 	tshark -i ${radwiface} -w ${logfldr}/freeradius-creds-$(date +%F-%H%M).dump &> /dev/null &
@@ -1345,11 +1346,13 @@ f_EtterLog(){
 }
 ##################################################
 f_freeradiuscreds(){
+credlist=
 while [ -z "${credlist}" ] && [ ! -e "${credlist}" ]; do
 	echo -n -e "\nPlease enter the path to your FreeRadius Attack credential list"
 	read -e -p ": " credlist
 done
 
+wordlist=
 while [ -z "${wordlist}" ] && [ ! -e "${wordlist}" ]; do
 	echo -n -e "\nPlease enter the path to your wordlist"
 	read -e -p ": " wordlist
