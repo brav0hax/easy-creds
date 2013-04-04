@@ -197,8 +197,10 @@ f_nanoetterdns(){
 	#ettercap repo package install
 	elif [ -e /usr/share/ettercap/etter.dns ];then
 		etter_dns_path=/usr/share/ettercap/etter.dns
+	elif [ -e /etc/ettercap/etter.dns ];then
+		etter_dns_path=/etc/ettercap/etter.dns
 	else
-		echo -e "\e[1;31m[-] I can't find the etter.dns file\e[0m"
+		echo -e "\n\e[1;31m[-] I can't find the etter.dns file\e[0m"
 		sleep 3
 		f_prereqs
 	fi
