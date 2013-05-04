@@ -1247,7 +1247,7 @@ if [ -d ${logfldr} ]; then
 	fi
 fi
 
-if [ -e /${PWD}/strip-accts.txt ]; then rm /${PWD}/strip-accts.txt; fi
+if [ -e ${PWD}/strip-accts.txt ]; then rm ${PWD}/strip-accts.txt; fi
 
 unset LOGPATH
 while [ -z ${LOGPATH} ] || [ ! -f "${LOGPATH}" ]; do read -e -p "Enter the full path to your SSLStrip log file: " LOGPATH;	done
@@ -1267,7 +1267,7 @@ while [ ${i} -le "${NUMLINES}" ]; do
 	GREPSTR="$(grep -a ${VAL2} "${LOGPATH}" | grep -a ${VAL3} | grep -a ${VAL4})"
 
 	if [ "${GREPSTR}" ]; then
-		echo -n "${VAL1}" "- " >> /${PWD}/strip-accts.txt
+		echo -n "${VAL1}" "- " >> ${PWD}/strip-accts.txt
 		echo "${GREPSTR}" | \
 		sed -e 's/.*'${VAL3}'=/'${VAL3}'=/' -e 's/&/ /' -e 's/&.*//' >> ${PWD}/strip-accts.txt
 	fi
@@ -1299,7 +1299,7 @@ f_dsniff(){
 	 read -e -p "Enter the path for your dsniff Log file: " DSNIFFPATH
 	done
 
-	dsniff -r ${DSNIFFPATH} >> /${PWD}/dsniff-log.txt
+	dsniff -r ${DSNIFFPATH} >> ${PWD}/dsniff-log.txt
 	if [ -z ${isxrunning} ];then
 	 cat ${PWD}/dnsiff-log.txt | less
 	else
