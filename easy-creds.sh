@@ -607,14 +607,22 @@ f_ipcalc(){
 }
 ##################################################
 f_dhcpmanual(){
-unset ATCIDR
-while [ -z "${ATCIDR}" ]; do
-	read -p "Network range for your tunneled interface, example 10.0.0.0/24: " ATCIDR
-	if [[ ! ${ATCIDR} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then ATCIDR=; fi
-done
-unset ATDNS
-while [ -z "${ATDNS}" ]; do read -p "Enter the IP address for the DNS server, example 8.8.8.8: " ATDNS; done
-f_ipcalc
+        unset ATCIDR
+        while [ -z "${ATCIDR}" ]; do
+                read -p "Network range for your tunneled interface, example 10.0.0.0/24: " ATCIDR
+                if [[ ! ${ATCIDR} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then ATCIDR=; fi
+        done
+
+        var=$(grep "nameserver" /etc/resolv.conf | awk '{print $2}' |wc -l) # count the number of nameservers in resolv.conf
+        if [[ $var = 1 ]];then  # if 1, use it in dhcpd.conf
+          ATDNS=$(grep nameserver /etc/resolv.conf | awk '{print $2}')
+        elif [[ $var > 1 ]];then  # if more than 1 nameserver, manipulate string into an acceptable form for dhcpd.conf
+          ATDNS=$(grep nameserver /etc/resolv.conf | awk '{print $2}' | tr '\n' ',') # replace newlines with commas
+          ATDNS=${ATDNS//,/", "}                           # add a space after all commas
+          ATDNS=${ATDNS%", "}                              # delete the final comma/space
+        else ATDNS="8.8.8.8" # default in case resolv.conf is empty
+        fi
+        f_ipcalc
 }
 ##################################################
 f_dhcptunnel(){
@@ -1091,7 +1099,7 @@ fi
 
 atheroscard=$(lsmod | grep -c 'ath')
 if [ "${atheroscard}" -lt "1" ]; then
-	echo -e "\n\e[1;31m[-]\e[0m I could not find and Atheros wireless card.\nAttack only works with an atheros chipset...\n"
+	echo -e "\n\e[1;31m[-]\e[0m I could not find an Atheros wireless card.\nAttack only works with an atheros chipset...\n"
 	sleep 5
 fi
 
