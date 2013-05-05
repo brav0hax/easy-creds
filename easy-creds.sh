@@ -524,8 +524,20 @@ echo -e "\n\e[1;34m[*]\e[0m Your interface has now been placed in Monitor Mode\n
 airmon-ng | grep mon | sed '$a\\n'
 unset MONMODE
 while [ -z "${MONMODE}" ]; do read -p "Enter your monitor enabled interface name, (ex: mon0): " MONMODE; done
+unset VAR  
+while [[ -z "$VAR" ]]; do read -p "Macchange $MONMODE? (y/n): " VAR; done
+if [[ $VAR == y ]];then
+    while [[ -z $rand ]]; do read -p "Random MAC? (y). Or manual (m): " rand; done
+    case $rand in
+        y|Y) ifconfig $MONMODE down && macchanger -A $MONMODE && ifconfig $MONMODE up;;
+        m|M) while [ -z $ap_mac ];do read -p "Desired MAC Address for $MONMODE?: " ap_mac; done
+             ifconfig $MONMODE down && macchanger -m $ap_mac $MONMODE && ifconfig $MONMODE up;;
+    esac
+    sleep 2
+fi
 unset TUNIFACE
-while [ -z "${TUNIFACE}" ]; do read -p "Enter your tunnel interface, example at0: " TUNIFACE; done
+# while [ -z "${TUNIFACE}" ]; do read -p "Enter your tunnel interface, example at0: " TUNIFACE; done
+TUNIFACE=at0 # does it ever need to be anything else?
 read -p "Do you have a dhcpd.conf file to use? [y/N]: " DHCPFILE
 DHCPFILE=$(echo ${DHCPFILE} | tr 'A-Z' 'a-z')
 if [ "${DHCPFILE}" == "y" ]; then
