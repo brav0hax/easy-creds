@@ -270,7 +270,7 @@ f_aircrackupdate(){
 clear
 f_Banner
 echo -e "\n\e[1;34m[*]\e[0m Updating aircrack-ng from SVN, please be patient..."
-svn co http://trac.aircrack-ng.org/svn/trunk/ /tmp/ec/aircrack-ng
+svn co http://svn.aircrack-ng.org/trunk/ /tmp/ec/aircrack-ng
 cd /tmp/ec/aircrack-ng/
 make && make install > /dev/null
 echo -e "\n\e[1;32m[+]\e[0m Finished updating Aircrack.\n"
@@ -666,7 +666,18 @@ while [ -z "${ATCIDR}" ]; do
 	if [[ ! ${ATCIDR} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then ATCIDR=; fi
 done
 unset ATDNS
-while [ -z "${ATDNS}" ]; do read -p "Enter the IP address for the DNS server, example 8.8.8.8: " ATDNS; done
+cat /etc/resolv.conf |grep nameserver|cut -d " " -f2 >/tmp/ec/name_servers.lst
+if [ -s /tmp/ec/name_servers.lst ]; then
+	echo
+	echo "The following DNS server IPs were found in your /etc/resolv.conf file: "
+	for ips in $(cat /tmp/ec/name_servers.lst); do
+		echo -n " <> " && echo ${ips}
+	done
+	echo
+fi
+while [ -z "${ATDNS}" ]; do read -p "Enter the IP address for the DNS server, example 8.8.8.8: " ATDNS
+	if [[ ! ${ATDNS} =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then ATDNS=; fi
+done
 f_ipcalc
 }
 ##################################################
