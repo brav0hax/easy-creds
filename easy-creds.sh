@@ -225,27 +225,6 @@ fi
 f_prereqs
 }
 ##################################################
-f_dhcp_server_install(){
-clear
-f_Banner
-echo -e "\e[1;34m[*]\e[0m Installing dhcp server, please stand by.\n"
-if [ -e /etc/lsb-release ] || [ -e /etc/issue ]; then
-	which_dhcp_server=$(apt-cache search isc-dhcp-server)
-	if [ -z "${which_dhcp_server}" ]; then
-		apt-get update && apt-get install -y dhcp3-server &> /dev/null
-	else
-		apt-get update && apt-get install -y isc-dhcp-server &> /dev/null
-	fi
-elif [ -e /etc/redhat-release ]; then
-	yum install dhcp* &> /dev/null
-else
-	echo -e "\e[1;31m[-]\e[0m I can't determine your OS, please install dhcp server manually"
-fi
-echo -e "\n\e[1;32m[+]\e[0m Finished installing dhcp server.\n"
-sleep 3
-f_prereqs
-}
-##################################################
 f_karmareqs(){
 clear
 f_Banner
@@ -1464,26 +1443,24 @@ clear
 f_Banner
 echo "1.  Edit etter.conf"
 echo "2.  Edit etter.dns"
-echo "3.  Install dhcp server"
-echo "4.  Install karmetasploit prereqs"
-echo "5.  Add tunnel interface to dhcp server"
-echo "6.  Update Metasploit Framework"
-echo "7.  Update Aircrack-ng"
-echo "8.  How-to Videos (Launches Web Browser)"
-echo "9.  Previous Menu"
+echo "3.  Install karmetasploit prereqs"
+echo "4.  Add tunnel interface to dhcp server"
+echo "5.  Update Metasploit Framework"
+echo "6.  Update Aircrack-ng"
+echo "7.  How-to Videos (Launches Web Browser)"
+echo "8.  Previous Menu"
 echo
 read -p "Choice: " prereqschoice
 
 case ${prereqschoice} in
 1) f_nanoetter ;;
 2) f_nanoetterdns ;;
-3) f_dhcp_server_install ;;
-4) f_karmareqs ;;
-5) f_addtunnel ;;
-6) f_msfupdate ;;
-7) f_aircrackupdate ;;
-8) f_howtos ;;
-9) f_mainmenu ;;
+3) f_karmareqs ;;
+4) f_addtunnel ;;
+5) f_msfupdate ;;
+6) f_aircrackupdate ;;
+7) f_howtos ;;
+8) f_mainmenu ;;
 *) f_prereqs ;;
 esac
 }
