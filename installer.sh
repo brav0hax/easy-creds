@@ -422,7 +422,7 @@ f_Banner(){
 	echo -e "||\e[1;36me\e[0m |||\e[1;36ma\e[0m |||\e[1;36ms\e[0m |||\e[1;36my\e[0m |||\e[1;36m-\e[0m |||\e[1;36mc\e[0m |||\e[1;36mr\e[0m |||\e[1;36me\e[0m |||\e[1;36md\e[0m |||\e[1;36ms\e[0m ||"
 	echo -e "||__|||__|||__|||__|||__|||__|||__|||__|||__|||__||"
 	echo -e "|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|/__\|"
-	echo -e "\e[1;33m 	Version 3.7 - Garden of Your Mind\e[0m"
+	echo -e "\e[1;33m 	Version 3.8 - DEV\e[0m"
 	echo -e "\e[1;33m 		   Installer\e[0m"
 	echo
 }
