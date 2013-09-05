@@ -1143,8 +1143,8 @@ if [ "${atheroscard}" -lt "1" ]; then
 	sleep 5
 fi
 
-mv ${pathtoradiusconf}/radiusd.conf ${pathtoradiusconf}/radiusd.conf.back 2&1> /dev/null
-mv ${pathtoradiusconf}/clients.conf ${pathtoradiusconf}/clients.conf.back 2&1> /dev/null
+mv ${pathtoradiusconf}/radiusd.conf ${pathtoradiusconf}/radiusd.conf.back 2>&1> /dev/null
+mv ${pathtoradiusconf}/clients.conf ${pathtoradiusconf}/clients.conf.back 2>&1> /dev/null
 
 if [ -e ${pathtoradiusconf} ]; then
 	cat ${pathtoradiusconf}/radiusd.conf.back | sed -e '/^proxy_request/s/yes/no/' -e 's/\$INCLUDE proxy.conf/#\$INCLUDE proxy.conf/' > ${pathtoradiusconf}/radiusd.conf
