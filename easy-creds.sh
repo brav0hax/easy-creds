@@ -113,7 +113,7 @@ if [ ! -z "$(pidof urlsnarf)" ]; then kill $(pidof urlsnarf); fi
 if [ ! -z "$(pidof dsniff)" ]; then kill $(pidof dsniff); fi
 echo "0" > /proc/sys/net/ipv4/ip_forward
 
-if [ -z "$(ls ${logfldr})" ];then rm -rf ${logfldr}; fi
+#if [ -z "$(ls ${logfldr})" ];then rm -rf ${logfldr}; fi #simple hack-fix for now
 # The following will run for wireless AP attacks
 if [ ! -z ${wireless} ]; then
 	kill $(pidof airbase-ng)
