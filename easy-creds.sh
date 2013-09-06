@@ -113,7 +113,7 @@ if [ ! -z "$(pidof urlsnarf)" ]; then kill $(pidof urlsnarf); fi
 if [ ! -z "$(pidof dsniff)" ]; then kill $(pidof dsniff); fi
 echo "0" > /proc/sys/net/ipv4/ip_forward
 
-if [ -z "$(ls ${logfldr})" ];then rm -rf ${logfldr}; fi
+#if [ -z "$(ls ${logfldr})" ];then rm -rf ${logfldr}; fi #simple hack-fix for now
 # The following will run for wireless AP attacks
 if [ ! -z ${wireless} ]; then
 	kill $(pidof airbase-ng)
@@ -1143,8 +1143,8 @@ if [ "${atheroscard}" -lt "1" ]; then
 	sleep 5
 fi
 
-mv ${pathtoradiusconf}/radiusd.conf ${pathtoradiusconf}/radiusd.conf.back 2&1> /dev/null
-mv ${pathtoradiusconf}/clients.conf ${pathtoradiusconf}/clients.conf.back 2&1> /dev/null
+mv ${pathtoradiusconf}/radiusd.conf ${pathtoradiusconf}/radiusd.conf.back 2>&1> /dev/null
+mv ${pathtoradiusconf}/clients.conf ${pathtoradiusconf}/clients.conf.back 2>&1> /dev/null
 
 if [ -e ${pathtoradiusconf} ]; then
 	cat ${pathtoradiusconf}/radiusd.conf.back | sed -e '/^proxy_request/s/yes/no/' -e 's/\$INCLUDE proxy.conf/#\$INCLUDE proxy.conf/' > ${pathtoradiusconf}/radiusd.conf
