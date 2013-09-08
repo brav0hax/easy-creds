@@ -20,7 +20,7 @@ f_debian(){
 	echo -e "\n\e[1;33m[*]\e[0m Installing pre-reqs for Debian/Ubuntu...\n"
 	echo -e "\e[1;33m[*]\e[0m Running 'updatedb'\n"
 	updatedb
-	
+
 	reqs="cmake gcc g++ subversion wget libssl-dev libpcap0.8 libpcap0.8-dev libssl-dev libssl0.9.8 libssl1.0.0 libtool hostapd dsniff ipcalc ${dhcpserver} aircrack-ng xterm"
 
 	for i in $reqs; do
@@ -46,7 +46,7 @@ f_debian(){
 			echo -e "\e[1;32m[+]\e[0m I found $i installed on your system"
 		fi
         done
-echo -n -e "\e[1;31m[!]\e[0m If you received an error for libssl this is expected as long as one of them installed properly."
+echo -n -e "\e[1;31m[!]\e[0m If you received an error for libssl this is expected as long as one of them installed properly.\n\n"
 sleep 5
 
 if [ -e /tmp/ec-install/aircrack-ng-fail ]; then
@@ -81,15 +81,15 @@ f_rhfedora(){
         echo -e "\n\e[1;33m[*]\e[0m Installing pre-reqs for Red Hat/Fedora...\n"
 	echo -e "\e[1;33m[*]\e[0m Running 'updatedb'\n"
 	updatedb
-	
+
 	reqs="gcc gcc-c++ libstdc++ libstdc++-devel subversion wget openssl-devel libtool libpcap libpcap-devel hostapd dsniff dhcp ipcalculator aircrack-ng"
 
 	for i in $reqs; do
 		if [ -z $(rpm -qa $i) 2>/dev/null ]; then
 			echo -e "\e[1;33m[-]\e[0m $i is not installed, will attempt to install..."
 			yum install -y $i &>/dev/null
-			
-			if [ -z $(rpm -qa $i) ];then	
+
+			if [ -z $(rpm -qa $i) ];then
 				echo -e "\t\e[1;31m[-]\e[0m $i could not be installed from the repository"
 			else
 				update=1
@@ -167,7 +167,7 @@ if [ ! -e /usr/bin/aircrack-ng ] && [ ! -e /usr/sbin/aircrack-ng ] && [ ! -e /us
 	echo -e "\n\e[1;33m[*]\e[0m Downloading and installing aircrack-ng from SVN"
 	svn co http://trac.aircrack-ng.org/svn/trunk/ /tmp/ec-install/aircrack-ng
 	cd /tmp/ec-install/aircrack-ng/
-	make && make install > /dev/null
+	make -j8 && make install > /dev/null
 	airodump-ng-oui-update > /dev/null
 	cd $path
 	echo -e "\n\e[1;32m[+]\e[0m Aircrack-ng has been installed..."
@@ -180,7 +180,7 @@ fi
 f_ettercapinstall(){
 etterupdate=
 if [ ! -e /usr/bin/ettercap ] && [ ! -e /usr/local/bin/ettercap ] && [ ! -e /usr/sbin/ettercap ] && [ ! -e /usr/local/sbin/ettercap ]; then
-	etterupdate=1	
+	etterupdate=1
 	update=1
 	echo -e "\e[1;33m[-]\e[0m ettercap is not installed, will attempt to install..."
 	sleep 2
@@ -222,13 +222,13 @@ if [ ! -e /usr/bin/radiusd ] && [ ! -e /usr/sbin/radiusd ] && [ ! -e /usr/local/
 	wget ftp://ftp.freeradius.org/pub/radius/old/freeradius-server-2.1.11.tar.bz2 -O /tmp/ec-install/freeradius-server-2.1.11.tar.bz2
 	wget http://www.opensecurityresearch.com/files/freeradius-wpe-2.1.11.patch -O /tmp/ec-install/freeradius-wpe-2.1.11.patch
 	cd /tmp/ec-install
-	tar -jxvf freeradius-server-2.1.11.tar.bz2 &> /dev/null
+	tar jxvf freeradius-server-2.1.11.tar.bz2 &> /dev/null
 	mv freeradius-wpe-2.1.11.patch /tmp/ec-install/freeradius-server-2.1.11/freeradius-wpe-2.1.11.patch
 	cd freeradius-server-2.1.11
 	patch -p1 < freeradius-wpe-2.1.11.patch &> /dev/null
 	echo -e "\n\e[1;33m[*]\e[0m Installing the patched freeradius server..."
 	sleep 3
-	./configure && make && make install &> /dev/null
+	./configure && make -j8 && make install &> /dev/null
 	cd /usr/local/etc/raddb/certs/
 	./bootstrap &> /dev/null
 	cd $path
@@ -252,9 +252,9 @@ if [ ! -e /usr/bin/asleap ] && [ ! -e /usr/sbin/asleap ] && [ ! -e /usr/local/sb
 	wget http://www.willhackforsushi.com/code/asleap/2.2/asleap-2.2.tgz -O /tmp/ec-install/asleap.tgz
 	cd /tmp/ec-install
 	tar xvf asleap.tgz
-	cd asleap
-	make
-	mv /tmp/ec-install/asleap/* /opt/asleap/
+	cd asleap-2.2
+	make -j8
+	mv /tmp/ec-install/asleap-2.2/* /opt/asleap/
 	cd /usr/bin
 	ln -f -s /opt/asleap/asleap asleap
 	cd $path
@@ -277,7 +277,7 @@ if [ ! -e /usr/bin/ferret ] && [ ! -e /usr/sbin/ferret ] && [ ! -e /usr/local/sb
 	echo -e "\n\e[1;33m[*]\e[0m Downloading and installing ferret from SVN"
 	svn checkout http://ferret.googlecode.com/svn/trunk/ /tmp/ec-install/ferret
 	cd /tmp/ec-install/ferret/
-	make &> /dev/null
+	make -j8 #&> /dev/null
 	if [ ! -e /opt/sidejack ]; then mkdir /opt/sidejack; fi
 	cp /tmp/ec-install/ferret/bin/ferret /opt/sidejack/ferret
 	cd /usr/bin
@@ -302,10 +302,10 @@ if [ ! -e /usr/bin/hamster ] && [ ! -e /usr/sbin/hamster ] && [ ! -e /usr/local/
 	sleep 2
 	echo -e "\n\e[1;33m[*]\e[0m Downloading and installing hamster from source..."
 	cd /tmp/ec-install
-	wget http://www.erratasec.com/erratasec.zip -O /tmp/ec-install/erratasec.zip
+	wget http://www.brav0hax.com/erratasec.zip -O /tmp/ec-install/erratasec.zip
 	unzip erratasec.zip &> /dev/null
 	cd hamster/build/gcc4/
-	make &> /dev/null
+	make -j8 &> /dev/null
 	cp /tmp/ec-install/hamster/bin/* /opt/sidejack
 	rm -rf /tmp/ec-install/ferret
 	cd /usr/bin
@@ -391,9 +391,9 @@ f_install(){
 		if [ -z $easycredpath ]; then
 			easycredpath="/opt"
 			valid=1
-		elif [ -e $easycredpath ]; then 
+		elif [ -e $easycredpath ]; then
 			valid=1
-		else		
+		else
 			echo "Not a valid file path."
 		fi
 	done
@@ -401,7 +401,7 @@ f_install(){
 	# Remove the ending slash if it exists in path
 	easycredpath=$(echo $easycredpath | sed 's/\/$//g')
 
-	if [ $PWD == $easycredpath/easy-creds ]; then 
+	if [ $PWD == $easycredpath/easy-creds ]; then
 		echo -e "\e[1;33m[*]\e[0m OK...keeping the folder where it is..."
 		sleep 3
 		chmod 755 $easycredpath/easy-creds/easy-creds.sh
