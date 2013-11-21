@@ -167,7 +167,7 @@ if [ ! -e /usr/bin/aircrack-ng ] && [ ! -e /usr/sbin/aircrack-ng ] && [ ! -e /us
 	echo -e "\n\e[1;33m[*]\e[0m Downloading and installing aircrack-ng from SVN"
 	svn co http://trac.aircrack-ng.org/svn/trunk/ /tmp/ec-install/aircrack-ng
 	cd /tmp/ec-install/aircrack-ng/
-	make -j8 && make install > /dev/null
+	make && make install > /dev/null
 	airodump-ng-oui-update > /dev/null
 	cd $path
 	echo -e "\n\e[1;32m[+]\e[0m Aircrack-ng has been installed..."
@@ -228,7 +228,7 @@ if [ ! -e /usr/bin/radiusd ] && [ ! -e /usr/sbin/radiusd ] && [ ! -e /usr/local/
 	patch -p1 < freeradius-wpe-2.1.11.patch &> /dev/null
 	echo -e "\n\e[1;33m[*]\e[0m Installing the patched freeradius server..."
 	sleep 3
-	./configure && make -j8 && make install &> /dev/null
+	./configure && make && make install &> /dev/null
 	cd /usr/local/etc/raddb/certs/
 	./bootstrap &> /dev/null
 	cd $path
@@ -253,7 +253,7 @@ if [ ! -e /usr/bin/asleap ] && [ ! -e /usr/sbin/asleap ] && [ ! -e /usr/local/sb
 	cd /tmp/ec-install
 	tar xvf asleap.tgz
 	cd asleap-2.2
-	make -j8
+	make
 	mv /tmp/ec-install/asleap-2.2/* /opt/asleap/
 	cd /usr/bin
 	ln -f -s /opt/asleap/asleap asleap
@@ -277,7 +277,7 @@ if [ ! -e /usr/bin/ferret ] && [ ! -e /usr/sbin/ferret ] && [ ! -e /usr/local/sb
 	echo -e "\n\e[1;33m[*]\e[0m Downloading and installing ferret from SVN"
 	svn checkout http://ferret.googlecode.com/svn/trunk/ /tmp/ec-install/ferret
 	cd /tmp/ec-install/ferret/
-	make -j8 #&> /dev/null
+	make #&> /dev/null
 	if [ ! -e /opt/sidejack ]; then mkdir /opt/sidejack; fi
 	cp /tmp/ec-install/ferret/bin/ferret /opt/sidejack/ferret
 	cd /usr/bin
@@ -305,7 +305,7 @@ if [ ! -e /usr/bin/hamster ] && [ ! -e /usr/sbin/hamster ] && [ ! -e /usr/local/
 	wget http://www.brav0hax.com/erratasec.zip -O /tmp/ec-install/erratasec.zip
 	unzip erratasec.zip &> /dev/null
 	cd hamster/build/gcc4/
-	make -j8 &> /dev/null
+	make &> /dev/null
 	cp /tmp/ec-install/hamster/bin/* /opt/sidejack
 	rm -rf /tmp/ec-install/ferret
 	cd /usr/bin
