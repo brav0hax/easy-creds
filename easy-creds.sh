@@ -354,7 +354,7 @@ ifconfig | awk '/Link encap:Eth/ {print;getline;print}' | sed '{ N; s/\n/ /; s/L
 
 unset IFACE
 while [ -z ${IFACE} ]; do
-	read -p "Interface connected to the network (ex. eth0): " IFACE
+	read -e -p "Interface connected to the network: " -i "eth0" IFACE
 done
 
 echo -e "\n\e[1;34m[*]\e[0m Setting up iptables to handle traffic routing...\n"
@@ -497,7 +497,7 @@ echo -e "Network Interfaces:\n"
 ifconfig | awk '/Link encap:Eth/ {print;getline;print}' | sed '{ N; s/\n/ /; s/Link en.*.HWaddr//g; s/ Bcast.*//g; s/UP.*.:1//g; s/inet addr/IP/g; }' | sed '$a\\n'
 
 unset IFACE
-while [ -z "${IFACE}" ]; do read -p "Interface connected to the internet (ex. eth0): " IFACE; done
+while [ -z "${IFACE}" ]; do read -e -p "Interface connected to the internet: " -i "eth0" IFACE; done
 wirelesscheck=$(airmon-ng | grep 'wlan')
 if [ ! -z "${wirelesscheck}" ]; then
 	airmon-ng
@@ -507,7 +507,7 @@ else
 fi
 
 unset WIFACE
-while [ -z "${WIFACE}" ]; do read -p "Wireless interface name (ex. wlan0): " WIFACE; done
+while [ -z "${WIFACE}" ]; do read -e -p "Wireless interface name: " -i "wlan0" WIFACE; done
 if [ "${eviltwin}" == "1" ]; then
 	airmon-ng start ${WIFACE} &> /dev/null
 else
@@ -521,13 +521,13 @@ modprobe tun
 echo -e "\n\e[1;34m[*]\e[0m Your interface has now been placed in Monitor Mode\n"
 airmon-ng | grep mon | sed '$a\\n'
 unset MONMODE
-while [ -z "${MONMODE}" ]; do read -p "Enter your monitor enabled interface name, (ex: mon0): " MONMODE; done
+while [ -z "${MONMODE}" ]; do read -e -p "Enter your monitor enabled interface name: " -i "mon0" MONMODE; done
 
 if [ ! -z "$(find /usr/bin/ | grep macchanger)" ] || [ ! -z "$(find /usr/local/bin | grep macchanger)" ]; then
 	f_macchanger
 fi
 unset TUNIFACE
-while [ -z "${TUNIFACE}" ]; do read -p "Enter your tunnel interface, example at0: " TUNIFACE; done
+while [ -z "${TUNIFACE}" ]; do read -e -p "Enter your tunnel interface: " -i "at0" TUNIFACE; done
 read -p "Do you have a dhcpd.conf file to use? [y/N]: " DHCPFILE
 DHCPFILE=$(echo ${DHCPFILE} | tr 'A-Z' 'a-z')
 if [ "${DHCPFILE}" == "y" ]; then
@@ -957,17 +957,17 @@ f_xtermwindows
 echo -e "Network Interfaces:\n"
 ifconfig | awk '/Link encap:Eth/ {print;getline;print}' | sed '{ N; s/\n/ /; s/Link en.*.HWaddr//g; s/ Bcast.*//g; s/UP.*.:1//g; s/inet addr/IP/g; }' | sed '$a\\n'
 
-while [ -z ${IFACE} ]; do read -p "Interface connected to the internet, example eth0: " IFACE; done
+while [ -z ${IFACE} ]; do read -e -p "Interface connected to the internet: " -i "eth0" IFACE; done
 airmon-ng
-while [ -z ${WIFACE} ]; do read -p "Wireless interface name, example wlan0: " WIFACE; done
+while [ -z ${WIFACE} ]; do read -e -p "Wireless interface name: " -i "wlan0" WIFACE; done
 airmon-ng start ${WIFACE} &> /dev/null
 modprobe tun
 echo -e "\n\e[1;34m[*]\e[0m Your interface has now been placed in Monitor Mode\n"
 airmon-ng | grep mon | sed '$a\\n'
 unset MONMODE
-while [ -z ${MONMODE} ]; do read -p "Enter your monitor enabled interface name (ex. mon0): " MONMODE; done
+while [ -z ${MONMODE} ]; do read -e -p "Enter your monitor enabled interface name: " -i "mon0" MONMODE; done
 unset TUNIFACE
-while [ -z ${TUNIFACE} ]; do read -p "Enter your tunnel interface (ex. at0): " TUNIFACE; done
+while [ -z ${TUNIFACE} ]; do read -e -p "Enter your tunnel interface: " -i "at0" TUNIFACE; done
 f_karmadhcp
 f_karmasetup
 f_karmafinal
@@ -976,9 +976,9 @@ f_mainmenu
 ##################################################
 f_karmadhcp(){
 unset ATCIDR
-while [ -z ${ATCIDR} ]; do read -p "Network range for your tunneled interface, example 10.0.0.0/24: " ATCIDR; done
+while [ -z ${ATCIDR} ]; do read -e -p "Network range for your tunneled interface: " -i "10.0.0.0/24:" ATCIDR; done
 unset ATDNS
-while [ -z ${ATDNS} ]; do read -p "Enter the IP address for the DNS server, example 8.8.8.8: " ATDNS; done
+while [ -z ${ATDNS} ]; do read -e -p "Enter the IP address for the DNS server: " -i "8.8.8.8" ATDNS; done
 f_ipcalc
 }
 ##################################################
